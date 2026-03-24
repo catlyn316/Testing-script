@@ -1,0 +1,298 @@
+local CONFIG = {
+	TOGGLE_KEY = Enum.KeyCode.X,
+	INVISIBILITY_POSITION = Vector3.new(-25.95, 84, 3537.55),
+	BACKGROUND_COLOR = Color3.fromRGB(11, 11, 13),
+	ACCENT_COLOR = Color3.fromRGB(24, 24, 28),
+	PRIMARY_COLOR = Color3.fromRGB(0, 160, 255),
+	SUCCESS_COLOR = Color3.fromRGB(0, 255, 140),
+	DANGER_COLOR = Color3.fromRGB(255, 55, 55),
+	TEXT_COLOR = Color3.fromRGB(245, 245, 245),
+}
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local playerState = {
+	isInvisible = false,
+}
+
+local savedTransparency: {[BasePart | Decal]: number} = {}
+
+local screenGui: ScreenGui
+local mainFrame: Frame
+local toggleButton: TextButton
+local closeButton: TextButton
+local statusLabel: TextLabel
+local statusCircle: Frame
+
+-- 記錄所有物件的當前透明度
+local function recordTransparency(character: Model)
+	savedTransparency = {}
+	for _, descendant in character:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			savedTransparency[descendant] = descendant.Transparency
+		elseif descendant:IsA("Decal") then
+			savedTransparency[descendant] = descendant.Transparency
+		end
+	end
+end
+
+-- 套用透明度，HumanoidRootPart 始終為 1
+local function applyTransparency(character: Model, transparency: number)
+	for _, descendant in character:GetDescendants() do
+		if descendant.Name == "HumanoidRootPart" then
+			if descendant:IsA("BasePart") then
+				descendant.Transparency = 1
+			end
+		elseif descendant:IsA("BasePart") then
+			descendant.Transparency = transparency
+		elseif descendant:IsA("Decal") then
+			descendant.Transparency = transparency
+		end
+	end
+end
+
+-- 還原為記錄的原始透明度
+local function restoreTransparency(character: Model)
+	for _, descendant in character:GetDescendants() do
+		if descendant.Name == "HumanoidRootPart" then
+			if descendant:IsA("BasePart") then
+				descendant.Transparency = 1
+			end
+		elseif descendant:IsA("BasePart") or descendant:IsA("Decal") then
+			local original = savedTransparency[descendant]
+			if original ~= nil then
+				-- 原本就是完全透明的，不還原（保持隱藏）
+				if original < 1 then
+					descendant.Transparency = original
+				end
+			else
+				-- 隱形後才加上的物件，預設顯示
+				descendant.Transparency = 0
+			end
+		end
+	end
+	savedTransparency = {}
+end
+
+local function updateStatusUI()
+	if not statusLabel or not statusCircle then return end
+	if playerState.isInvisible then
+		statusLabel.Text = "SYSTEM: ACTIVE"
+		TweenService:Create(statusCircle, TweenInfo.new(0.3), {BackgroundColor3 = CONFIG.SUCCESS_COLOR}):Play()
+		TweenService:Create(statusCircle:FindFirstChild("UIStroke"), TweenInfo.new(0.3), {Color = CONFIG.SUCCESS_COLOR, Transparency = 0.4}):Play()
+	else
+		statusLabel.Text = "SYSTEM: INACTIVE"
+		TweenService:Create(statusCircle, TweenInfo.new(0.3), {BackgroundColor3 = CONFIG.DANGER_COLOR}):Play()
+		TweenService:Create(statusCircle:FindFirstChild("UIStroke"), TweenInfo.new(0.3), {Color = CONFIG.DANGER_COLOR, Transparency = 0.4}):Play()
+	end
+end
+
+local function toggleInvisibility()
+	if not player.Character then return end
+	playerState.isInvisible = not playerState.isInvisible
+
+	if playerState.isInvisible then
+		local hrp = player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if not hrp then
+			playerState.isInvisible = false
+			return
+		end
+
+		-- 隱形前先記錄所有透明度
+		recordTransparency(player.Character)
+
+		local savedPosition = hrp.CFrame
+		player.Character:MoveTo(CONFIG.INVISIBILITY_POSITION)
+		task.wait(0.15)
+
+		local seat = Instance.new("Seat")
+		seat.Name = "invischair"
+		seat.Anchored = false
+		seat.CanCollide = false
+		seat.Transparency = 1
+		seat.Position = CONFIG.INVISIBILITY_POSITION
+		seat.Parent = workspace
+
+		local weld = Instance.new("Weld")
+		weld.Part0 = seat
+		weld.Part1 = player.Character:FindFirstChild("Torso") or player.Character:FindFirstChild("UpperTorso")
+		weld.Parent = seat
+
+		task.wait()
+		seat.CFrame = savedPosition
+
+		applyTransparency(player.Character, 0.5)
+		toggleButton.Text = "BECOME VISIBLE"
+	else
+		local invisChair = workspace:FindFirstChild("invischair")
+		if invisChair then invisChair:Destroy() end
+
+		if player.Character then
+			restoreTransparency(player.Character)
+		end
+
+		toggleButton.Text = "BECOME INVISIBLE"
+	end
+
+	updateStatusUI()
+end
+
+local function createGUI()
+	screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "Ziaa_FE_Refined"
+	screenGui.ResetOnSpawn = false
+	screenGui.Parent = player:WaitForChild("PlayerGui")
+
+	mainFrame = Instance.new("Frame")
+	mainFrame.Size = UDim2.new(0, 178, 0, 160)
+	mainFrame.Position = UDim2.new(0.5, -89, 0, -300)
+	mainFrame.BackgroundColor3 = CONFIG.BACKGROUND_COLOR
+	mainFrame.BorderSizePixel = 0
+	mainFrame.Active = true
+	mainFrame.Draggable = true
+	mainFrame.Parent = screenGui
+
+	Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+	local mStroke = Instance.new("UIStroke", mainFrame)
+	mStroke.Color = Color3.fromRGB(255, 255, 255)
+	mStroke.Transparency = 0.94
+	mStroke.Thickness = 1
+
+	TweenService:Create(mainFrame, TweenInfo.new(0.8, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0.5, -89, 0.5, -80)
+	}):Play()
+
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Size = UDim2.new(1, 0, 0, 38)
+	titleLabel.Position = UDim2.new(0, 0, 0, 5)
+	titleLabel.Text = "FE INVISIBILITY"
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.TextColor3 = CONFIG.TEXT_COLOR
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextSize = 10
+	titleLabel.Parent = mainFrame
+
+	local function style(btn: TextButton)
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+		local s = Instance.new("UIStroke", btn)
+		s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		s.Color = Color3.fromRGB(255, 255, 255)
+		s.Transparency = 0.9
+
+		btn.MouseEnter:Connect(function()
+			TweenService:Create(s, TweenInfo.new(0.2), {Transparency = 0.5, Color = CONFIG.PRIMARY_COLOR}):Play()
+		end)
+		btn.MouseLeave:Connect(function()
+			TweenService:Create(s, TweenInfo.new(0.2), {Transparency = 0.9, Color = Color3.fromRGB(255, 255, 255)}):Play()
+		end)
+		btn.MouseButton1Down:Connect(function()
+			TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {
+				Size = UDim2.new(1, -28, 0, 32),
+				BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+			}):Play()
+		end)
+		btn.MouseButton1Up:Connect(function()
+			TweenService:Create(btn, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+				Size = UDim2.new(1, -24, 0, 36),
+				BackgroundColor3 = CONFIG.ACCENT_COLOR
+			}):Play()
+		end)
+	end
+
+	toggleButton = Instance.new("TextButton")
+	toggleButton.Size = UDim2.new(1, -24, 0, 36)
+	toggleButton.Position = UDim2.new(0, 12, 0, 48)
+	toggleButton.Text = "BECOME INVISIBLE"
+	toggleButton.BackgroundColor3 = CONFIG.ACCENT_COLOR
+	toggleButton.TextColor3 = CONFIG.TEXT_COLOR
+	toggleButton.Font = Enum.Font.GothamBold
+	toggleButton.TextSize = 9
+	toggleButton.AutoButtonColor = false
+	toggleButton.Parent = mainFrame
+	style(toggleButton)
+
+	statusCircle = Instance.new("Frame")
+	statusCircle.Size = UDim2.new(0, 6, 0, 6)
+	statusCircle.Position = UDim2.new(0.5, -3, 0, 100)
+	statusCircle.BackgroundColor3 = CONFIG.DANGER_COLOR
+	statusCircle.Parent = mainFrame
+	Instance.new("UICorner", statusCircle).CornerRadius = UDim.new(1, 0)
+	local glowCircle = Instance.new("UIStroke", statusCircle)
+	glowCircle.Thickness = 2
+	glowCircle.Color = CONFIG.DANGER_COLOR
+	glowCircle.Transparency = 0.5
+
+	statusLabel = Instance.new("TextLabel")
+	statusLabel.Size = UDim2.new(1, 0, 0, 15)
+	statusLabel.Position = UDim2.new(0, 0, 0, 108)
+	statusLabel.Text = "SYSTEM: INACTIVE"
+	statusLabel.BackgroundTransparency = 1
+	statusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+	statusLabel.Font = Enum.Font.GothamBold
+	statusLabel.TextSize = 7
+	statusLabel.Parent = mainFrame
+
+	local footer = Instance.new("TextLabel")
+	footer.Size = UDim2.new(1, 0, 0, 15)
+	footer.Position = UDim2.new(0, 0, 1, -15)
+	footer.Text = "by ziaa on rscripts"
+	footer.BackgroundTransparency = 1
+	footer.TextColor3 = Color3.fromRGB(255, 255, 255)
+	footer.TextTransparency = 0.5
+	footer.Font = Enum.Font.GothamBold
+	footer.TextSize = 6
+	footer.Parent = mainFrame
+	local footGlow = Instance.new("UIStroke", footer)
+	footGlow.Color = Color3.fromRGB(255, 255, 255)
+	footGlow.Transparency = 0.85
+	footGlow.Thickness = 0.4
+
+	closeButton = Instance.new("TextButton")
+	closeButton.Size = UDim2.new(0, 20, 0, 20)
+	closeButton.Position = UDim2.new(1, -26, 0, 8)
+	closeButton.Text = "×"
+	closeButton.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+	closeButton.TextColor3 = CONFIG.TEXT_COLOR
+	closeButton.Font = Enum.Font.GothamBold
+	closeButton.TextSize = 14
+	closeButton.Parent = mainFrame
+	Instance.new("UICorner", closeButton).CornerRadius = UDim.new(1, 0)
+
+	closeButton.MouseButton1Click:Connect(function()
+		local exitTween = TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+			Position = UDim2.new(0.5, -89, 0, -300)
+		})
+		exitTween:Play()
+		exitTween.Completed:Connect(function()
+			screenGui:Destroy()
+		end)
+	end)
+end
+
+-- 初始化
+createGUI()
+toggleButton.MouseButton1Click:Connect(toggleInvisibility)
+
+UserInputService.InputBegan:Connect(function(input, processed)
+	if not processed and input.KeyCode == CONFIG.TOGGLE_KEY then
+		toggleInvisibility()
+	end
+end)
+
+-- 重生處理
+player.CharacterAdded:Connect(function(character)
+	playerState.isInvisible = false
+	savedTransparency = {}
+	toggleButton.Text = "BECOME INVISIBLE"
+	updateStatusUI()
+	character:WaitForChild("HumanoidRootPart").Transparency = 1
+end)
+
+-- 現有角色
+if player.Character then
+	local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+	if hrp then hrp.Transparency = 1 end
+end
