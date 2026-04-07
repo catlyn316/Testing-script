@@ -1,4 +1,4 @@
--- 貓玲的手套偵測工具 v1.0
+-- 貓玲的手套偵測工具 v1.1
 -- 分區：偵測徽章手套 / 搜尋說明
 
 local CoreGui           = game:GetService("CoreGui")
@@ -44,8 +44,8 @@ local THEME = {
 -- ============================================================
 -- 手套資料
 -- ============================================================
+-- detectKey：用於偵測 _unlockedGloves 的 key（nil 表示與 en 相同）
 local GLOVE_DATA = {
-    -- { en = "英文", zh = "中文", diff = "難度", desc = "介紹" }
     { en = "MEGAROCK",      zh = "巨石",       diff = "地獄",    desc = "要拿石頭一次掛機十小時，期間還怕伺服器突然來個重置。" },
     { en = "Plague",        zh = "瘟疫",       diff = "普通",    desc = "被瘟疫手套打到就行。" },
     { en = "Hallow Jack",   zh = "南瓜",       diff = "無法獲得", desc = "需要在萬聖節活動期間刷到有墓碑的公服，用連殺搞到10殺後點擊墓碑才能獲得。" },
@@ -175,7 +175,8 @@ local GLOVE_DATA = {
     { en = "Shopkeeper",    zh = "店主",       diff = "簡單",    desc = "拿延長去地下室點紙，之後去賣手套賣到有3000塊去跟神秘商人換手套。" },
     { en = "Collector",     zh = "收集者",     diff = "簡單",    desc = "去地下室點主地圖的模形，之後就去玩你的找手套模擬器吧。" },
     { en = "Glaxe",         zh = "伐木工",     diff = "普通",    desc = "去皇家撿斧頭，把一個人打到40血以下後用斧頭砍死他。" },
-    { en = "Pinata",        zh = "皮納塔",     diff = "普通",    desc = "用鍊金拿麵粉後進烤箱，出來後把蛋糕放樹果島的桌子上，等蛋糕消失後在兩側小島其中一個會有皮納塔出現，打爆他即可。" },
+    -- Pinata：顯示用 en/zh 不變，偵測用 detectKey = "Piñata"
+    { en = "Pinata",        zh = "皮納塔",     diff = "普通",    detectKey = "Piñata", desc = "用鍊金拿麵粉後進烤箱，出來後把蛋糕放樹果島的桌子上，等蛋糕消失後在兩側小島其中一個會有皮納塔出現，打爆他即可。" },
     { en = "Penguin",       zh = "企鵝",       diff = "簡單",    desc = "跟企鵝玩滑冰吃魚和記憶力。" },
     { en = "Undead",        zh = "殭屍",       diff = "簡單",    desc = "在時鐘能力快從復活時間轉到下一個能力前，跳下虛空。" },
     { en = "Groundbreaker", zh = "破地者",     diff = "中等",    desc = "用地震同時埋了3個人並都打到虛空。" },
@@ -235,8 +236,8 @@ Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -60, 1, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "貓玲的手套偵測工具"
-titleLabel.TextSize = 12; titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Text = "貓玲的手套偵測工具 v1.1"
+titleLabel.TextSize = 11; titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextColor3 = THEME.accent
 titleLabel.TextXAlignment = Enum.TextXAlignment.Center
 titleLabel.Parent = titleBar
@@ -300,11 +301,13 @@ tabPad.Parent = tabInner
 local tabButtons = {}
 for i, name in ipairs(tabNames) do
     local tb = Instance.new("TextButton")
-    tb.Size = UDim2.new(0, 80, 0, 22)
+    -- 加寬分頁按鈕，防止文字漏餡
+    tb.Size = UDim2.new(0, 96, 0, 22)
     tb.BackgroundColor3 = THEME.tabBg
     tb.Text = name; tb.TextSize = 11
     tb.Font = Enum.Font.GothamBold
     tb.TextColor3 = THEME.textMuted
+    tb.AutoButtonColor = false
     tb.Parent = tabInner
     Instance.new("UICorner", tb).CornerRadius = UDim.new(0, 4)
     tabButtons[i] = tb
@@ -346,6 +349,7 @@ local function makeButton(parent, text, x, y, w, h, color)
     b.Text = text; b.TextSize = 11
     b.Font = Enum.Font.GothamBold
     b.TextColor3 = Color3.fromRGB(255,255,255)
+    b.AutoButtonColor = false
     b.Parent = parent
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
     return b
@@ -395,7 +399,7 @@ p1FontInput.Text = "11"
 local scanBtn = makeButton(ctrlFrame, "偵測", 210, 4, 48, 20)
 local statusLbl = Instance.new("TextLabel")
 statusLbl.Size = UDim2.new(0, 100, 0, 18)
-statusLbl.Position = UDim2.new(0, 210, 0, 30)
+statusLbl.Position = UDim2.new(0, 210, 0, 28)
 statusLbl.BackgroundTransparency = 1
 statusLbl.Text = "等待偵測"
 statusLbl.TextSize = 10; statusLbl.Font = Enum.Font.Gotham
@@ -486,7 +490,6 @@ p1FontInput.FocusLost:Connect(function()
     v = v and math.clamp(v, 8, 18) or 11
     p1FontInput.Text = tostring(v)
     currentP1FontSize = v
-    -- 更新已存在項目的字體大小
     for _, child in ipairs(haveScroll:GetChildren()) do
         if child:IsA("TextLabel") then child.TextSize = v end
     end
@@ -546,7 +549,6 @@ local function doScan()
         local unlockedGloves = targetPlayer:FindFirstChild("_unlockedGloves")
 
         if not unlockedGloves then
-            -- 等待最多5秒
             local t0 = tick()
             while not unlockedGloves and tick() - t0 < 5 do
                 task.wait(0.2)
@@ -564,7 +566,11 @@ local function doScan()
         local missingCount = 0
 
         for _, glove in ipairs(GLOVE_DATA) do
-            local hasIt = unlockedGloves:FindFirstChild(glove.en) ~= nil
+            -- 決定要偵測的 key：優先使用 detectKey，否則用 en
+            local key = glove.detectKey or glove.en
+            local child = unlockedGloves:FindFirstChild(key)
+            -- child 存在且 value 為 true → 已解鎖；不存在或 value 為 false → 未解鎖
+            local hasIt = child ~= nil and (child.Value == true)
             if hasIt then
                 addGloveEntry(haveScroll, glove, true)
                 haveCount = haveCount + 1
@@ -606,6 +612,104 @@ detailView.BackgroundTransparency = 1
 detailView.Visible = false
 detailView.Parent = page2
 
+-- ── 詳細界面（先建，因為搜尋列表點擊會用到）──
+local backBtn = makeButton(detailView, "← 返回", 0, 0, 60, 22, THEME.tabActive)
+
+local detailScroll = Instance.new("ScrollingFrame")
+detailScroll.Size = UDim2.new(1, 0, 1, -28)
+detailScroll.Position = UDim2.new(0, 0, 0, 28)
+detailScroll.BackgroundTransparency = 1; detailScroll.BorderSizePixel = 0
+detailScroll.ScrollBarThickness = 3
+detailScroll.ScrollBarImageColor3 = THEME.primary
+detailScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+detailScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+detailScroll.Parent = detailView
+
+local detailLayout = Instance.new("UIListLayout")
+detailLayout.SortOrder = Enum.SortOrder.LayoutOrder
+detailLayout.Padding = UDim.new(0, 4)
+detailLayout.Parent = detailScroll
+
+local detailPad = Instance.new("UIPadding")
+detailPad.PaddingLeft = UDim.new(0, 6)
+detailPad.PaddingRight = UDim.new(0, 6)
+detailPad.PaddingTop = UDim.new(0, 4)
+detailPad.Parent = detailScroll
+
+-- 英文名
+local detailEnLbl = Instance.new("TextLabel")
+detailEnLbl.Size = UDim2.new(1, 0, 0, 28)
+detailEnLbl.BackgroundTransparency = 1
+detailEnLbl.Text = ""
+detailEnLbl.TextSize = 16; detailEnLbl.Font = Enum.Font.GothamBold
+detailEnLbl.TextColor3 = THEME.accent
+detailEnLbl.TextXAlignment = Enum.TextXAlignment.Left
+detailEnLbl.TextWrapped = true
+detailEnLbl.LayoutOrder = 1
+detailEnLbl.Parent = detailScroll
+
+-- 中文名
+local detailZhLbl = Instance.new("TextLabel")
+detailZhLbl.Size = UDim2.new(1, 0, 0, 20)
+detailZhLbl.BackgroundTransparency = 1
+detailZhLbl.Text = ""
+detailZhLbl.TextSize = 13; detailZhLbl.Font = Enum.Font.Gotham
+detailZhLbl.TextColor3 = THEME.textSub
+detailZhLbl.TextXAlignment = Enum.TextXAlignment.Left
+detailZhLbl.LayoutOrder = 2
+detailZhLbl.Parent = detailScroll
+
+-- 難度
+local detailDiffLbl = Instance.new("TextLabel")
+detailDiffLbl.Size = UDim2.new(1, 0, 0, 20)
+detailDiffLbl.BackgroundTransparency = 1
+detailDiffLbl.Text = ""
+detailDiffLbl.TextSize = 12; detailDiffLbl.Font = Enum.Font.GothamBold
+detailDiffLbl.TextXAlignment = Enum.TextXAlignment.Left
+detailDiffLbl.LayoutOrder = 3
+detailDiffLbl.Parent = detailScroll
+
+-- 分隔線
+local detailDivider = Instance.new("Frame")
+detailDivider.Size = UDim2.new(1, 0, 0, 1)
+detailDivider.BackgroundColor3 = THEME.primaryDark
+detailDivider.BorderSizePixel = 0
+detailDivider.LayoutOrder = 4
+detailDivider.Parent = detailScroll
+
+-- 說明框
+local detailDescBox = Instance.new("Frame")
+detailDescBox.Size = UDim2.new(1, 0, 0, 60)
+detailDescBox.BackgroundColor3 = THEME.bgRow
+detailDescBox.BorderSizePixel = 0
+detailDescBox.AutomaticSize = Enum.AutomaticSize.Y
+detailDescBox.LayoutOrder = 5
+detailDescBox.Parent = detailScroll
+Instance.new("UICorner", detailDescBox).CornerRadius = UDim.new(0, 6)
+
+local detailDescInnerPad = Instance.new("UIPadding")
+detailDescInnerPad.PaddingLeft = UDim.new(0, 8)
+detailDescInnerPad.PaddingRight = UDim.new(0, 8)
+detailDescInnerPad.PaddingTop = UDim.new(0, 6)
+detailDescInnerPad.PaddingBottom = UDim.new(0, 6)
+detailDescInnerPad.Parent = detailDescBox
+
+local detailDescLbl = Instance.new("TextLabel")
+detailDescLbl.Size = UDim2.new(1, 0, 0, 0)
+detailDescLbl.AutomaticSize = Enum.AutomaticSize.Y
+detailDescLbl.BackgroundTransparency = 1
+detailDescLbl.Text = ""
+detailDescLbl.TextSize = 12; detailDescLbl.Font = Enum.Font.Gotham
+detailDescLbl.TextColor3 = THEME.textMain
+detailDescLbl.TextXAlignment = Enum.TextXAlignment.Left
+detailDescLbl.TextWrapped = true
+detailDescLbl.Parent = detailDescBox
+
+backBtn.MouseButton1Click:Connect(function()
+    detailView.Visible = false
+    searchView.Visible = true
+end)
+
 -- ── 搜尋界面內容 ──
 local searchCtrl = Instance.new("Frame")
 searchCtrl.Size = UDim2.new(1, 0, 0, 52)
@@ -615,13 +719,15 @@ Instance.new("UICorner", searchCtrl).CornerRadius = UDim.new(0, 6)
 
 local searchInput = makeInput(searchCtrl, "搜尋名稱...", 6, 4, 166, 20)
 
+-- 難度篩選按鈕（固定寬度避免文字截斷）
 local diffFilter = Instance.new("TextButton")
-diffFilter.Size = UDim2.new(0, 76, 0, 20)
+diffFilter.Size = UDim2.new(0, 78, 0, 20)
 diffFilter.Position = UDim2.new(0, 176, 0, 4)
 diffFilter.BackgroundColor3 = THEME.tabBg
-diffFilter.Text = "全部難度 ▾"
+diffFilter.Text = "全部 ▾"
 diffFilter.TextSize = 10; diffFilter.Font = Enum.Font.GothamBold
 diffFilter.TextColor3 = THEME.textMain
+diffFilter.AutoButtonColor = false
 diffFilter.Parent = searchCtrl
 Instance.new("UICorner", diffFilter).CornerRadius = UDim.new(0, 4)
 
@@ -659,32 +765,33 @@ diffDropdown.ZIndex = 20
 diffDropdown.Parent = searchCtrl
 Instance.new("UICorner", diffDropdown).CornerRadius = UDim.new(0, 4)
 
+-- 難度選項顯示用短標籤
 local DIFF_OPTIONS = {"全部難度","簡單","普通","中等","困難","地獄","無法獲得"}
+local DIFF_SHORT   = {"全部","簡單","普通","中等","困難","地獄","無法"}
 local selectedDiff = "全部難度"
 
 local diffBtnList = {}
 for i, opt in ipairs(DIFF_OPTIONS) do
     local db = Instance.new("TextButton")
-    db.Size = UDim2.new(1, 0, 0, 18)
-    db.Position = UDim2.new(0, 0, 0, (i-1)*18)
+    db.Size = UDim2.new(1, 0, 0, 20)
+    db.Position = UDim2.new(0, 0, 0, (i-1)*20)
     db.BackgroundTransparency = 0.5
     db.BackgroundColor3 = THEME.tabBg
     db.Text = opt; db.TextSize = 10; db.Font = Enum.Font.Gotham
     db.TextColor3 = (opt == "全部難度") and THEME.textMain or (DIFF_COLOR[opt] or THEME.textMain)
     db.ZIndex = 21
+    db.AutoButtonColor = false
     db.Parent = diffDropdown
     table.insert(diffBtnList, db)
+
     db.MouseButton1Click:Connect(function()
         selectedDiff = opt
-        diffFilter.Text = opt .. " ▾"
+        -- 按鈕顯示短標籤，防文字截斷
+        diffFilter.Text = DIFF_SHORT[i] .. " ▾"
         diffDropdown.Visible = false
         diffDropdown.Size = UDim2.new(0, 80, 0, 0)
-        -- 重新篩選
-        searchInput:RelayoutTo(searchInput) -- 觸發更新
-        -- 手動觸發
-        local event = Instance.new("BindableEvent")
-        event:Fire()
-        event:Destroy()
+        -- 立即更新搜尋結果
+        buildSearchResults(searchInput.Text, selectedDiff)
     end)
 end
 
@@ -693,7 +800,7 @@ diffFilter.MouseButton1Click:Connect(function()
         diffDropdown.Visible = false
         diffDropdown.Size = UDim2.new(0, 80, 0, 0)
     else
-        diffDropdown.Size = UDim2.new(0, 80, 0, #DIFF_OPTIONS * 18)
+        diffDropdown.Size = UDim2.new(0, 80, 0, #DIFF_OPTIONS * 20)
         diffDropdown.Visible = true
     end
 end)
@@ -722,8 +829,8 @@ searchPad.Parent = searchScroll
 local currentP2FontSize = 11
 local currentSearchBtns = {}
 
-local function buildSearchResults(query, diffFilter_)
-    -- 清除舊結果
+-- buildSearchResults 需要前向引用 detailView，故定義在詳細界面建立之後
+function buildSearchResults(query, diffFilter_)
     for _, b in ipairs(currentSearchBtns) do
         if b then pcall(function() b:Destroy() end) end
     end
@@ -786,24 +893,17 @@ local function buildSearchResults(query, diffFilter_)
 
             local capturedGlove = glove
             btn.MouseButton1Click:Connect(function()
-                -- 顯示詳細頁
-                searchView.Visible = false
-                detailView.Visible = true
-
+                -- 先填充詳細內容，再切換畫面
                 detailEnLbl.Text = capturedGlove.en
                 detailZhLbl.Text = capturedGlove.zh
                 detailDiffLbl.Text = "難度：" .. capturedGlove.diff
                 detailDiffLbl.TextColor3 = DIFF_COLOR[capturedGlove.diff] or THEME.textMuted
                 detailDescLbl.Text = capturedGlove.desc
 
-                task.defer(function()
-                    local bounds = game:GetService("TextService"):GetTextSize(
-                        capturedGlove.desc, detailDescLbl.TextSize, detailDescLbl.Font,
-                        Vector2.new(detailDescLbl.AbsoluteSize.X > 10 and detailDescLbl.AbsoluteSize.X or 230, math.huge)
-                    )
-                    detailDescLbl.Size = UDim2.new(1, -12, 0, bounds.Y)
-                    detailDescBox.Size = UDim2.new(1, 0, 0, bounds.Y + 20)
-                end)
+                searchView.Visible = false
+                detailView.Visible = true
+                -- 重置詳細滾動位置
+                detailScroll.CanvasPosition = Vector2.new(0, 0)
             end)
 
             btn.MouseEnter:Connect(function() btn.BackgroundColor3 = THEME.activeRow end)
@@ -815,79 +915,6 @@ local function buildSearchResults(query, diffFilter_)
 
     resultCountLabel.Text = string.format("共 %d 個", count)
 end
-
--- ── 詳細界面 ──
-local backBtn = makeButton(detailView, "← 返回", 0, 0, 56, 22, THEME.tabActive)
-
-local detailScroll = Instance.new("ScrollingFrame")
-detailScroll.Size = UDim2.new(1, 0, 1, -28)
-detailScroll.Position = UDim2.new(0, 0, 0, 28)
-detailScroll.BackgroundTransparency = 1; detailScroll.BorderSizePixel = 0
-detailScroll.ScrollBarThickness = 3
-detailScroll.ScrollBarImageColor3 = THEME.primary
-detailScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-detailScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-detailScroll.Parent = detailView
-
-local detailEnLbl = Instance.new("TextLabel")
-detailEnLbl.Size = UDim2.new(1, -12, 0, 28)
-detailEnLbl.Position = UDim2.new(0, 6, 0, 4)
-detailEnLbl.BackgroundTransparency = 1
-detailEnLbl.Text = ""
-detailEnLbl.TextSize = 16; detailEnLbl.Font = Enum.Font.GothamBold
-detailEnLbl.TextColor3 = THEME.accent
-detailEnLbl.TextXAlignment = Enum.TextXAlignment.Left
-detailEnLbl.Parent = detailScroll
-
-local detailZhLbl = Instance.new("TextLabel")
-detailZhLbl.Size = UDim2.new(1, -12, 0, 20)
-detailZhLbl.Position = UDim2.new(0, 6, 0, 32)
-detailZhLbl.BackgroundTransparency = 1
-detailZhLbl.Text = ""
-detailZhLbl.TextSize = 13; detailZhLbl.Font = Enum.Font.Gotham
-detailZhLbl.TextColor3 = THEME.textSub
-detailZhLbl.TextXAlignment = Enum.TextXAlignment.Left
-detailZhLbl.Parent = detailScroll
-
-local detailDiffLbl = Instance.new("TextLabel")
-detailDiffLbl.Size = UDim2.new(1, -12, 0, 20)
-detailDiffLbl.Position = UDim2.new(0, 6, 0, 54)
-detailDiffLbl.BackgroundTransparency = 1
-detailDiffLbl.Text = ""
-detailDiffLbl.TextSize = 12; detailDiffLbl.Font = Enum.Font.GothamBold
-detailDiffLbl.TextXAlignment = Enum.TextXAlignment.Left
-detailDiffLbl.Parent = detailScroll
-
-local detailDivider = Instance.new("Frame")
-detailDivider.Size = UDim2.new(1, -12, 0, 1)
-detailDivider.Position = UDim2.new(0, 6, 0, 78)
-detailDivider.BackgroundColor3 = THEME.primaryDark
-detailDivider.BorderSizePixel = 0
-detailDivider.Parent = detailScroll
-
-local detailDescBox = Instance.new("Frame")
-detailDescBox.Size = UDim2.new(1, 0, 0, 60)
-detailDescBox.Position = UDim2.new(0, 0, 0, 84)
-detailDescBox.BackgroundColor3 = THEME.bgRow
-detailDescBox.BorderSizePixel = 0
-detailDescBox.Parent = detailScroll
-Instance.new("UICorner", detailDescBox).CornerRadius = UDim.new(0, 6)
-
-local detailDescLbl = Instance.new("TextLabel")
-detailDescLbl.Size = UDim2.new(1, -12, 0, 60)
-detailDescLbl.Position = UDim2.new(0, 6, 0, 6)
-detailDescLbl.BackgroundTransparency = 1
-detailDescLbl.Text = ""
-detailDescLbl.TextSize = 12; detailDescLbl.Font = Enum.Font.Gotham
-detailDescLbl.TextColor3 = THEME.textMain
-detailDescLbl.TextXAlignment = Enum.TextXAlignment.Left
-detailDescLbl.TextWrapped = true
-detailDescLbl.Parent = detailDescBox
-
-backBtn.MouseButton1Click:Connect(function()
-    detailView.Visible = false
-    searchView.Visible = true
-end)
 
 -- p2 字體設定
 p2FontInput.FocusLost:Connect(function()
@@ -903,13 +930,6 @@ searchInput:GetPropertyChangedSignal("Text"):Connect(function()
     diffDropdown.Visible = false
     buildSearchResults(searchInput.Text, selectedDiff)
 end)
-
--- 難度篩選更新（透過 diffBtnList 點擊後已觸發，這裡補一個監聽）
-for _, db in ipairs(diffBtnList) do
-    db.MouseButton1Click:Connect(function()
-        buildSearchResults(searchInput.Text, selectedDiff)
-    end)
-end
 
 -- 初始化搜尋結果
 buildSearchResults("", "全部難度")
@@ -974,9 +994,9 @@ local miniStroke2 = Instance.new("UIStroke")
 miniStroke2.Color = THEME.primaryDark; miniStroke2.Thickness = 1.5; miniStroke2.Parent = miniFrame
 
 local miniTitleLbl = Instance.new("TextLabel")
-miniTitleLbl.Text = "手套偵測工具"; miniTitleLbl.Size = UDim2.new(1, -36, 1, 0)
+miniTitleLbl.Text = "手套偵測工具 v1.1"; miniTitleLbl.Size = UDim2.new(1, -36, 1, 0)
 miniTitleLbl.BackgroundTransparency = 1; miniTitleLbl.Font = Enum.Font.GothamBold
-miniTitleLbl.TextSize = 12; miniTitleLbl.TextColor3 = THEME.accent; miniTitleLbl.Parent = miniFrame
+miniTitleLbl.TextSize = 11; miniTitleLbl.TextColor3 = THEME.accent; miniTitleLbl.Parent = miniFrame
 
 local expandBtn = Instance.new("TextButton")
 expandBtn.Text = "+"; expandBtn.Size = UDim2.new(0, 24, 0, 24)
@@ -984,6 +1004,7 @@ expandBtn.Position = UDim2.new(1, -28, 0, 4)
 expandBtn.BackgroundColor3 = THEME.primary
 expandBtn.TextColor3 = Color3.fromRGB(255,255,255)
 expandBtn.Font = Enum.Font.GothamBold; expandBtn.TextSize = 14
+expandBtn.AutoButtonColor = false
 expandBtn.Parent = miniFrame
 Instance.new("UICorner", expandBtn).CornerRadius = UDim.new(0, 5)
 enableDrag(miniFrame, miniFrame)
@@ -992,4 +1013,4 @@ minimizeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false; mini
 expandBtn.MouseButton1Click:Connect(function() miniFrame.Visible = false; mainFrame.Visible = true end)
 closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
-print("貓玲的手套偵測工具 v1.0 已載入！")
+print("貓玲的手套偵測工具 v1.1 已載入！")
