@@ -1,10 +1,9 @@
--- 貓玲的手套偵測工具 v1.1
+-- 貓玲的手套偵測工具 v1.2
 -- 分區：偵測徽章手套 / 搜尋說明
 
 local CoreGui           = game:GetService("CoreGui")
 local Players           = game:GetService("Players")
 local UserInputService  = game:GetService("UserInputService")
-local RunService        = game:GetService("RunService")
 
 local player    = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -37,156 +36,150 @@ local THEME = {
     textMuted   = Color3.fromRGB( 90,  60, 130),
     red         = Color3.fromRGB(200,  45,  45),
     green       = Color3.fromRGB( 40, 200,  90),
-    statusBg    = Color3.fromRGB(  6,   3,  12),
+    -- 未解鎖用更醒目的橘紅
+    missing     = Color3.fromRGB(210,  80,  60),
     activeRow   = Color3.fromRGB( 14,   5,  26),
 }
 
 -- ============================================================
 -- 手套資料
 -- ============================================================
--- detectKey：用於偵測 _unlockedGloves 的 key（nil 表示與 en 相同）
 local GLOVE_DATA = {
-    { en = "MEGAROCK",      zh = "巨石",       diff = "地獄",    desc = "要拿石頭一次掛機十小時，期間還怕伺服器突然來個重置。" },
-    { en = "Plague",        zh = "瘟疫",       diff = "普通",    desc = "被瘟疫手套打到就行。" },
-    { en = "Hallow Jack",   zh = "南瓜",       diff = "無法獲得", desc = "需要在萬聖節活動期間刷到有墓碑的公服，用連殺搞到10殺後點擊墓碑才能獲得。" },
-    { en = "[REDACTED]",    zh = "已編輯",     diff = "簡單",    desc = "由於取消了原本要5000拍才能獲得的巴掌數條件，現在能用腳本直接刷到獲得。" },
-    { en = "bus",           zh = "公車",       diff = "普通",    desc = "要先有1600拍的空間後被公車撞即可獲得。" },
-    { en = "Mitten",        zh = "禮物",       diff = "無法獲得", desc = "只能在聖誕期間獲得，要找有禮物手套的人刷禮物，機率乘了10倍。" },
-    { en = "Phase",         zh = "階段",       diff = "普通",    desc = "每個公服每10分鐘會有5%有紫球掉到場上，碰到即可獲得。" },
-    { en = "Warp",          zh = "瞬移",       diff = "普通",    desc = "用swapper把人打下去後對他用交換後因虛空死亡即可獲得，通常都只能找個能配合的人幫。" },
-    { en = "Bomb",          zh = "炸彈",       diff = "普通",    desc = "跟Warp一樣，但交換者換成warp。" },
-    { en = "Bubble",        zh = "泡泡",       diff = "普通",    desc = "用死神搞到9殺、連殺搞到250殺即可獲得，公私服都行。" },
-    { en = "Jet",           zh = "噴射機",     diff = "普通",    desc = "跟階段一樣，只是5%變10%，紫球變黃球。" },
-    { en = "Shard",         zh = "冰砂",       diff = "中等",    desc = "一命內以snow熄滅overkill的火焰5次。建議找有超殺的好友配合。" },
-    { en = "potato",        zh = "馬鈴薯",     diff = "普通",    desc = "用reverse反彈泡泡的技能即可獲得，但是要找到用泡泡的人。" },
-    { en = "CULT",          zh = "邪教",       diff = "簡單",    desc = "用馬鈴薯打人後讓他打回來，讓自己因自己的馬鈴薯死亡就行。" },
-    { en = "bob",           zh = "bob",        diff = "普通",    desc = "使用Replica/分身每次有1/7500機率產生Bob。利用腳本在時停期間生成75000個分身。" },
-    { en = "buddies",       zh = "友誼",       diff = "簡單",    desc = "用golden/黃金在能力期間打到3個不同玩家即可。" },
-    { en = "Moon",          zh = "月球",       diff = "普通",    desc = "在tournament/預設比賽中活到最後即可，每10分鐘才有一次預設比賽。" },
-    { en = "Jupiter",       zh = "木星",       diff = "普通",    desc = "被神手打到後存活幾秒即可，可用魚或thanos等能回場的手套在被打飛後用能力回場上。" },
-    { en = "Spy",           zh = "間諜",       diff = "地獄",    desc = "要在slap royale擊殺10人並活到最後勝利。" },
-    { en = "Detonator",     zh = "引爆者",     diff = "地獄",    desc = "跟spy一樣，但要15殺。" },
-    { en = "Rage",          zh = "憤怒",       diff = "普通",    desc = "用default/預設擊殺有50殺的連殺即可。" },
-    { en = "Trap",          zh = "陷阱",       diff = "普通",    desc = "在公服用brick放1000個積木即可，主要是要掛機30~60分鐘。" },
-    { en = "Orbit",         zh = "環繞",       diff = "普通",    desc = "讓bob非自然死亡即可，把bob引到死亡方塊或是用貓把bob消了都行。" },
-    { en = "Hybrid",        zh = "混合",       diff = "簡單",    desc = "用憤怒手套開啟憤怒模式維持一分鐘。" },
-    { en = "Slapple",       zh = "樹果",       diff = "普通",    desc = "在任意服每10分鐘會有1%在樹果島的最大樹上生成黃金樹果，吃下即可獲得。" },
-    { en = "Disarm",        zh = "解除武器",   diff = "簡單",    desc = "用死神在任意服搞到19殺。" },
-    { en = "Dominance",     zh = "領域",       diff = "地獄",    desc = "跟spy一樣，但領域不用殺人，只要最後勝利就行。" },
-    { en = "Link",          zh = "連結",       diff = "中等",    desc = "裝備error/錯誤即可獲得，但錯誤要50000拍。" },
-    { en = "Chain",         zh = "閃電",       diff = "簡單",    desc = "去皇家解密碼，詳細獲取方法去搜slap battle wiki。" },
-    { en = "Rattlebones",   zh = "骨頭",       diff = "無法獲得", desc = "要在萬聖節期間在公服拿到1000個糖。" },
-    { en = "Charge",        zh = "充能",       diff = "地獄",    desc = "跟spy一樣，但只要5殺。" },
-    { en = "Tycoon",        zh = "大亨",       diff = "普通",    desc = "在7人以上的公服待在盤子上連續10分鐘。" },
-    { en = "Confusion",     zh = "困惑",       diff = "中等",    desc = "包括自己要有4個能配合的人，各拿旋轉、死神、大亨、公車，按特定順序操作。" },
-    { en = "Glitch",        zh = "故障",       diff = "中等",    desc = "要等到紫球或黃球在場上時，用error拍擊光球，光球出現錯誤特效後誰碰到誰就能先獲得。" },
-    { en = "Snowball",      zh = "雪球",       diff = "無法獲得", desc = "應該跟禮物差不多，需在聖誕節限定期間獲得。" },
-    { en = "Elude",         zh = "閃避",       diff = "簡單",    desc = "對貓玲來說就只是開Giang hub的事，詳細解法去搜slap battle wiki。" },
-    { en = "RNG",           zh = "隨機",       diff = "簡單",    desc = "拿dice/骰子去任意服亂打，打到力量隨機到100即可。" },
-    { en = "fish",          zh = "魚",         diff = "普通",    desc = "用zzz選個地方連續安詳的睡1小時，去安全區就行。" },
-    { en = "🗿",             zh = "石像",       diff = "簡單",    desc = "自己踩自己放的trap/陷阱即可。" },
-    { en = "Obby",          zh = "跑酷",       diff = "普通",    desc = "在混亂的多人公服裡拿石頭，找人拿滾石把自己變巨石，等10個不同玩家因碰到自己而死亡。" },
-    { en = "Voodoo",        zh = "巫毒",       diff = "普通",    desc = "拿ghost/幽靈維持幽靈狀態一小時，一樣安全區的事。" },
-    { en = "Goofy",         zh = "混亂",       diff = "普通",    desc = "在困惑狀態下被混亂打到即可，主要難度是要找到有困惑和混亂手套的玩家。" },
-    { en = "Leash",         zh = "繩子",       diff = "困難",    desc = "要有16個人都拿著邪教進場才能獲得。" },
-    { en = "Flamarang",     zh = "火圈",       diff = "困難",    desc = "在任意服找到5個超殺，用boomerang/回力鏢把他們打下虛空，自己死了沒關係別離開伺服器就行。" },
-    { en = "Kinetic",       zh = "動能",       diff = "普通",    desc = "在公服用stun/暈眩倒地100次、用能力命中別人50次即可。" },
-    { en = "Berserk",       zh = "狂暴",       diff = "普通",    desc = "在公服要找到有動能的玩家，活過他的最大衝擊波3~4次。" },
-    { en = "Sparky",        zh = "極速",       diff = "中等",    desc = "要找到超殺、死神、conveyor，自己拿speedrun，被死神和運輸者打後用速跑全速衝向超殺後被超殺擊殺。" },
-    { en = "Boogie",        zh = "跳舞",       diff = "地獄",    desc = "在公服要有16人都在跳舞，堪稱死ten最瘋的時候做的手套。" },
-    { en = "Recall",        zh = "回憶",       diff = "普通",    desc = "新增回憶鴨後只要用反轉進過遺忘之地點回憶鴨即可，詳細解法去slap battle wiki。" },
-    { en = "Quake",         zh = "地震",       diff = "普通",    desc = "要有能完美配合的woah和home run把最大狂暴下的你擊退後打飛出去。" },
-    { en = "Psycho",        zh = "神經",       diff = "普通",    desc = "進遺忘之地後完成柱子跑酷，對貓玲來說直接用飛天就行。" },
-    { en = "Kraken",        zh = "海獸",       diff = "普通",    desc = "在任意服待5分鐘後，拿squid/烏賊被fish/魚打下虛空，然後打贏海獸boss就行。" },
-    { en = "Counter",       zh = "動漫",       diff = "簡單",    desc = "對貓玲來說跟閃避一樣，開Giang hub的事。" },
-    { en = "Hammer",        zh = "錘子",       diff = "普通",    desc = "撿別人用engineer/工程師在機器旁邊生成的工具箱即可，每次生成機器順帶生成工具箱的機率為10%。" },
-    { en = "rob",           zh = "rob",        diff = "中等",    desc = "包括自己要集齊至少4個人，各自拿死神、連殺、大亨、神手，其中或第五個人要有bob。" },
-    { en = "Rhythm",        zh = "音遊",       diff = "簡單",    desc = "一命內在跳舞期間拍擊10個在跳舞能力範圍的不同玩家，可以分開用多次能力解。" },
-    { en = "Rojo",          zh = "五條悟",     diff = "中等",    desc = "在任意服被死神打後，再被惡夢打，然後在自己為bob目標時殺死bob，只能用死亡方塊殺。" },
-    { en = "Hitman",        zh = "賞金獵人",   diff = "普通",    desc = "用track/導彈炸10個人到虛空，可以是同個人，還要點下大廳門下插向導的刀。" },
-    { en = "Retro",         zh = "復古",       diff = "普通",    desc = "用回憶在故障技能期間發動回溯能力，然後被錯誤打就可來到復古跑酷。" },
-    { en = "Null",          zh = "無",         diff = "普通",    desc = "用bob和rob融合開黑洞，用預設手套被吸進黑洞，之後去slap battle wiki，最後岔路選左。" },
-    { en = "Lure",          zh = "鯊魚",       diff = "中等",    desc = "用繩子同時繫著拿海獸、魚、烏賊的玩家。" },
-    { en = "Tinkerer",      zh = "修理工",     diff = "普通",    desc = "跟null一樣，但最後岔路選直走。" },
-    { en = "Necromancer",   zh = "死靈法師",   diff = "無法獲得", desc = "在萬聖節期間獲得2000個糖。" },
-    { en = "Alchemist",     zh = "鍊金術師",   diff = "簡單",    desc = "在任意服用瘟疫殺死10個不同玩家，打下虛空或毒殺都算。" },
-    { en = "Druid",         zh = "藤蔓",       diff = "簡單",    desc = "喝個藥，打個簡單塔防的事。" },
-    { en = "Jester",        zh = "小丑",       diff = "普通",    desc = "用閃避被打後傳送到死亡方塊。" },
-    { en = "Scythe",        zh = "鐮刀",       diff = "簡單",    desc = "跟藤蔓一樣，只是喝的藥不同，打的塔防也不同但還是很簡單。" },
-    { en = "Santa",         zh = "聖誕老人",   diff = "無法獲得", desc = "在雪球大戰中獲得65殺。" },
-    { en = "Iceskate",      zh = "溜冰",       diff = "簡單",    desc = "踩在溜冰的冰跡上讓自己結冰即可。" },
-    { en = "Blasphemy",     zh = "褻瀆",       diff = "普通",    desc = "用公車撞人時順便撞自己，或是讓別人用公車撞你，每次被撞都有1%被送去醫院並獲得手套。" },
-    { en = "Pan",           zh = "平底鍋",     diff = "普通",    desc = "去閃避的迷宮、無的黑洞、遺忘之地各拿一個娃娃然後去hitman那領手套。" },
-    { en = "Admin",         zh = "管理員",     diff = "普通",    desc = "去復古第二層繞過門到牌子後面點綠按紐，之後去看slap battle wiki，對貓玲來說用Giang hub傳送後掛機一小時。" },
-    { en = "Joust",         zh = "馬",         diff = "普通",    desc = "用30000拍的parry/格擋擋住衝過來的馬即可，主要是要找到有人用馬。" },
-    { en = "Firework",      zh = "煙火",       diff = "普通",    desc = "用鍊金拿到麵粉材料後進oven/烤箱，出來後把蛋糕吃了。" },
-    { en = "Run",           zh = "跑",         diff = "普通",    desc = "在任意服進別人用這手套造的迷宮並逃出10次，再回去hitman那領手套。" },
-    { en = "Glovel",        zh = "鏟子",       diff = "簡單",    desc = "去hitman那領任務後拿延長去砲島挖鏟子，挖到後去後面那紅x一直挖到有寶箱，有了後回去hitman那領手套。" },
-    { en = "Divebomb",      zh = "俯衝轟炸",   diff = "中等",    desc = "要領任務後在砲島把自己射過去黑洞5次。" },
-    { en = "Lamp",          zh = "燈",         diff = "簡單",    desc = "用zzz被惡夢打後找到燈泡撞碎後馬上用能力睡著，天亮後繼續，要重覆5次，但貓玲能用Giang hub直接解。" },
-    { en = "Knockoff",      zh = "斷頭",       diff = "簡單",    desc = "在pocket/口袋的空間中在密碼板那輸入4553293。" },
-    { en = "Frostbite",     zh = "凍傷",       diff = "簡單",    desc = "用冰砂踩在溜冰的冰跡後結凍，然後再被凍傷能力再凍一次，貓玲用Giang hub直接傳送+拿手套。" },
-    { en = "Plank",         zh = "木板",       diff = "簡單",    desc = "用fort/磚牆在最高的地方放牆，自己再站上去即可。" },
-    { en = "Spoonful",      zh = "湯匙",       diff = "簡單",    desc = "用大亨在任意服一次蓄到5000點。" },
-    { en = "the schlob",    zh = "schlob",     diff = "簡單",    desc = "拿魚坐cloud/雲後飛到最高點，然後用魚的能力跳到盤子上。" },
-    { en = "Siphon",        zh = "虹吸",       diff = "普通",    desc = "讓要幫的人把虹吸裝置丟到死亡方塊上後觸碰死亡方塊，之後會爆出藍球，觸碰即可獲得。" },
-    { en = "Wrench",        zh = "板手",       diff = "普通",    desc = "自己拿工程師，然後被thor/索爾的閃電電到後在電消失前拍擊自己的機器。" },
-    { en = "Hunter",        zh = "獵人",       diff = "簡單",    desc = "打贏向導boss戰後選殺了向導。" },
-    { en = "Relude",        zh = "Relude",     diff = "簡單",    desc = "最後選救向導上來。" },
-    { en = "Avatar",        zh = "虛擬",       diff = "簡單",    desc = "不拿第四心且不拿回血打贏向導。" },
-    { en = "Water",         zh = "水",         diff = "簡單",    desc = "在公服用鍊金解到所有藥水，目前是19個。" },
-    { en = "Fan",           zh = "風扇",       diff = "簡單",    desc = "去巴西把oog炸了救oog。" },
-    { en = "Boxer",         zh = "拳擊手",     diff = "簡單",    desc = "去巴西後上屋頂進煙囪後走到底點拳套。" },
-    { en = "MATERIALIZE",   zh = "物質化",     diff = "普通",    desc = "當黃球或紫球在場上存在1~3分鐘都沒人拿時，會變成閃電藍球，碰到就能獲得。" },
-    { en = "Bind",          zh = "鎖鍊",       diff = "簡單",    desc = "用鍊金把一紅一藍水晶三木板混成藥水，喝下後會被傳送到紫迷宮，走到終點點擊手套。" },
-    { en = "Poltergeist",   zh = "萬聖節鬼",  diff = "無法獲得", desc = "打僵屍。" },
-    { en = "Clock",         zh = "時鐘",       diff = "簡單",    desc = "去巴西塔尖頂等傳送，之後的去看slap battle wiki。" },
-    { en = "Untitled Tag Glove", zh = "無標籤", diff = "簡單",   desc = "去巴西跳上一堆屋子後跑酷，到終點的屋子那點牌子後傳送到紅跑酷塔，傳送後點牌子就行。" },
-    { en = "Pillow",        zh = "枕頭",       diff = "普通",    desc = "類似貓戰，但你可以只用那200塊就能買的坦克角一直狂放，對於貓玲來說...bringpart Meshes/pillow1 把枕頭一次全傳送。" },
-    { en = "Angler",        zh = "釣魚",       diff = "普通",    desc = "在公服用鯊魚的能力擊殺10人，能是同個人。" },
-    { en = "Jerry",         zh = "傑里",       diff = "無法獲得", desc = "在聖誕期間把snowpeep找齊後進boss戰，把Jerry打死就行。" },
-    { en = "Snowroller",    zh = "滾雪者",     diff = "普通",    desc = "在解枕頭那的樹下拿黑球傳送，之後對貓玲來說就是穿牆+飛行。" },
-    { en = "Draw4",         zh = "Draw4",      diff = "普通",    desc = "在任意服讓乒乓球反彈10回合以上。" },
-    { en = "Mouse",         zh = "老鼠",       diff = "簡單",    desc = "用貓去砲島點起司，剩下的夠簡單了。" },
-    { en = "Hexa",          zh = "六角",       diff = "簡單",    desc = "拿跑酷手套的長棍子地形搭個六邊形，剩下的去查slap battle wiki。" },
-    { en = "Metaverse",     zh = "元宇宙",     diff = "簡單",    desc = "去巴西的塔上跟紫球對話10次後會有黑門，進去後會傳送，剩下的去查slap battle wiki。" },
-    { en = "Swordfighter",  zh = "劍士",       diff = "簡單",    desc = "拿復古去砲島砸柱子砸出洞後進去傳送，跑完跑酷後打贏ajax拿到他爸的劍。" },
-    { en = "Tank",          zh = "坦克",       diff = "普通",    desc = "用50000拍的槍刷到30錢後去商人換6發爆炸彈，用拿6發打爆滿級的枕頭堡壘。" },
-    { en = "Eggler",        zh = "耀西",       diff = "簡單",    desc = "去接任務撿到10個蛋後回去hitman那點eggdog後過3個蛋跑酷就行。" },
-    { en = "Slender",       zh = "瘦長人",     diff = "簡單",    desc = "拿任務，知道神秘代碼後去口袋空間輸入，點紙頁，拉拉桿，點牌子傳進去後拿7張紙。" },
-    { en = "Swashbuckler",  zh = "海盜",       diff = "普通",    desc = "放最長的木板然後讓鯊魚打要解的海獸，鯊魚放水池後海獸走到木板末端跳下。" },
-    { en = "Silly",         zh = "滑稽",       diff = "普通",    desc = "拿baby/嬰兒被混亂打後開吵鬧，然後被風扇吹飛。" },
-    { en = "Slasher",       zh = "斬首者",     diff = "普通",    desc = "進run的迷宮的壁畫後經過一些操作後打死boss。" },
-    { en = "Car Keys",      zh = "車鑰匙",     diff = "普通",    desc = "讓車鑰匙用車能力並有座位後讓要解的adios坐上發動能力，傳送後跟ai比賽車勝利即可。" },
-    { en = "Suction",       zh = "馬桶",       diff = "普通",    desc = "點兩馬桶塞，向導門上和死亡方塊下，傳送後跑到終點。" },
-    { en = "Reflect",       zh = "反射",       diff = "普通",    desc = "在hitman那完成任意四個任務後進白門，打贏那boss。" },
-    { en = "Dave",          zh = "戴夫",       diff = "簡單",    desc = "還要說什麼嗎。" },
-    { en = "mortis",        zh = "莫提斯",     diff = "簡單",    desc = "也就戴夫的困難版。" },
-    { en = "Bounty",        zh = "賞金",       diff = "簡單",    desc = "用hitman拿到黃金槍，250賞金。" },
-    { en = "Debug",         zh = "除錯",       diff = "簡單",    desc = "被故障吸到後上上下下左左右右，之後進到個神秘地方。要密碼可以叫貓玲去你的服，或是去slap battle wiki看怎解。" },
-    { en = "Paint",         zh = "顏料",       diff = "簡單",    desc = "賞金地下室的梯子上有顏料漆，點下傳送後跟4個機器人比誰塗的顏料多。" },
-    { en = "Plate",         zh = "盤子",       diff = "簡單",    desc = "一直打盤子上的牌子讓他紅溫，之後撐過2分鐘的障礙賽。" },
-    { en = "Lag",           zh = "延遲",       diff = "簡單",    desc = "浮空10秒鐘。" },
-    { en = "Harvester",     zh = "收成者",     diff = "無法獲得", desc = "通過一堆迷宮後跟斬首者玩追逐戰。" },
-    { en = "Riftshot",      zh = "弓箭",       diff = "簡單",    desc = "去巴西射炸彈，別射靶。" },
-    { en = "Conker",        zh = "七葉樹",     diff = "簡單",    desc = "做任務、撿果實、打松鼠、有20就通關。" },
-    { en = "Wheelchair",    zh = "輪椅",       diff = "普通",    desc = "被桌子、褻瀆、bull/公牛、炸彈、lolbomb、slicer的拍擊打到且不死亡。" },
-    { en = "Elf",           zh = "精靈",       diff = "無法獲得", desc = "好像是要在聖誕節雪球大戰中每個角都有350點雪分數。" },
-    { en = "Shopkeeper",    zh = "店主",       diff = "簡單",    desc = "拿延長去地下室點紙，之後去賣手套賣到有3000塊去跟神秘商人換手套。" },
-    { en = "Collector",     zh = "收集者",     diff = "簡單",    desc = "去地下室點主地圖的模形，之後就去玩你的找手套模擬器吧。" },
-    { en = "Glaxe",         zh = "伐木工",     diff = "普通",    desc = "去皇家撿斧頭，把一個人打到40血以下後用斧頭砍死他。" },
-    -- Pinata：顯示用 en/zh 不變，偵測用 detectKey = "Piñata"
-    { en = "Pinata",        zh = "皮納塔",     diff = "普通",    detectKey = "Piñata", desc = "用鍊金拿麵粉後進烤箱，出來後把蛋糕放樹果島的桌子上，等蛋糕消失後在兩側小島其中一個會有皮納塔出現，打爆他即可。" },
-    { en = "Penguin",       zh = "企鵝",       diff = "簡單",    desc = "跟企鵝玩滑冰吃魚和記憶力。" },
-    { en = "Undead",        zh = "殭屍",       diff = "簡單",    desc = "在時鐘能力快從復活時間轉到下一個能力前，跳下虛空。" },
-    { en = "Groundbreaker", zh = "破地者",     diff = "中等",    desc = "用地震同時埋了3個人並都打到虛空。" },
+    { en = "MEGAROCK",           zh = "巨石",       diff = "地獄",    desc = "要拿石頭一次掛機十小時，期間還怕伺服器突然來個重置。" },
+    { en = "Plague",             zh = "瘟疫",       diff = "普通",    desc = "被瘟疫手套打到就行。" },
+    { en = "Hallow Jack",        zh = "南瓜",       diff = "無法獲得", desc = "需要在萬聖節活動期間刷到有墓碑的公服，用連殺搞到10殺後點擊墓碑才能獲得。" },
+    { en = "[REDACTED]",         zh = "已編輯",     diff = "簡單",    desc = "由於取消了原本要5000拍才能獲得的巴掌數條件，現在能用腳本直接刷到獲得。" },
+    { en = "bus",                zh = "公車",       diff = "普通",    desc = "要先有1600拍的空間後被公車撞即可獲得。" },
+    { en = "Mitten",             zh = "禮物",       diff = "無法獲得", desc = "只能在聖誕期間獲得，要找有禮物手套的人刷禮物，機率乘了10倍。" },
+    { en = "Phase",              zh = "階段",       diff = "普通",    desc = "每個公服每10分鐘會有5%有紫球掉到場上，碰到即可獲得。" },
+    { en = "Warp",               zh = "瞬移",       diff = "普通",    desc = "用swapper把人打下去後對他用交換後因虛空死亡即可獲得，通常都只能找個能配合的人幫。" },
+    { en = "Bomb",               zh = "炸彈",       diff = "普通",    desc = "跟Warp一樣，但交換者換成warp。" },
+    { en = "Bubble",             zh = "泡泡",       diff = "普通",    desc = "用死神搞到9殺、連殺搞到250殺即可獲得，公私服都行。" },
+    { en = "Jet",                zh = "噴射機",     diff = "普通",    desc = "跟階段一樣，只是5%變10%，紫球變黃球。" },
+    { en = "Shard",              zh = "冰砂",       diff = "中等",    desc = "一命內以snow熄滅overkill的火焰5次。建議找有超殺的好友配合。" },
+    { en = "potato",             zh = "馬鈴薯",     diff = "普通",    desc = "用reverse反彈泡泡的技能即可獲得，但是要找到用泡泡的人。" },
+    { en = "CULT",               zh = "邪教",       diff = "簡單",    desc = "用馬鈴薯打人後讓他打回來，讓自己因自己的馬鈴薯死亡就行。" },
+    { en = "bob",                zh = "bob",        diff = "普通",    desc = "使用Replica/分身每次有1/7500機率產生Bob。利用腳本在時停期間生成75000個分身。" },
+    { en = "buddies",            zh = "友誼",       diff = "簡單",    desc = "用golden/黃金在能力期間打到3個不同玩家即可。" },
+    { en = "Moon",               zh = "月球",       diff = "普通",    desc = "在tournament/預設比賽中活到最後即可，每10分鐘才有一次預設比賽。" },
+    { en = "Jupiter",            zh = "木星",       diff = "普通",    desc = "被神手打到後存活幾秒即可，可用魚或thanos等能回場的手套在被打飛後用能力回場上。" },
+    { en = "Spy",                zh = "間諜",       diff = "地獄",    desc = "要在slap royale擊殺10人並活到最後勝利。" },
+    { en = "Detonator",          zh = "引爆者",     diff = "地獄",    desc = "跟spy一樣，但要15殺。" },
+    { en = "Rage",               zh = "憤怒",       diff = "普通",    desc = "用default/預設擊殺有50殺的連殺即可。" },
+    { en = "Trap",               zh = "陷阱",       diff = "普通",    desc = "在公服用brick放1000個積木即可，主要是要掛機30~60分鐘。" },
+    { en = "Orbit",              zh = "環繞",       diff = "普通",    desc = "讓bob非自然死亡即可，把bob引到死亡方塊或是用貓把bob消了都行。" },
+    { en = "Hybrid",             zh = "混合",       diff = "簡單",    desc = "用憤怒手套開啟憤怒模式維持一分鐘。" },
+    { en = "Slapple",            zh = "樹果",       diff = "普通",    desc = "在任意服每10分鐘會有1%在樹果島的最大樹上生成黃金樹果，吃下即可獲得。" },
+    { en = "Disarm",             zh = "解除武器",   diff = "簡單",    desc = "用死神在任意服搞到19殺。" },
+    { en = "Dominance",          zh = "領域",       diff = "地獄",    desc = "跟spy一樣，但領域不用殺人，只要最後勝利就行。" },
+    { en = "Link",               zh = "連結",       diff = "中等",    desc = "裝備error/錯誤即可獲得，但錯誤要50000拍。" },
+    { en = "Chain",              zh = "閃電",       diff = "簡單",    desc = "去皇家解密碼，詳細獲取方法去搜slap battle wiki。" },
+    { en = "Rattlebones",        zh = "骨頭",       diff = "無法獲得", desc = "要在萬聖節期間在公服拿到1000個糖。" },
+    { en = "Charge",             zh = "充能",       diff = "地獄",    desc = "跟spy一樣，但只要5殺。" },
+    { en = "Tycoon",             zh = "大亨",       diff = "普通",    desc = "在7人以上的公服待在盤子上連續10分鐘。" },
+    { en = "Confusion",          zh = "困惑",       diff = "中等",    desc = "包括自己要有4個能配合的人，各拿旋轉、死神、大亨、公車，按特定順序操作。" },
+    { en = "Glitch",             zh = "故障",       diff = "中等",    desc = "要等到紫球或黃球在場上時，用error拍擊光球，光球出現錯誤特效後誰碰到誰就能先獲得。" },
+    { en = "Snowball",           zh = "雪球",       diff = "無法獲得", desc = "應該跟禮物差不多，需在聖誕節限定期間獲得。" },
+    { en = "Elude",              zh = "閃避",       diff = "簡單",    desc = "對貓玲來說就只是開Giang hub的事，詳細解法去搜slap battle wiki。" },
+    { en = "RNG",                zh = "隨機",       diff = "簡單",    desc = "拿dice/骰子去任意服亂打，打到力量隨機到100即可。" },
+    { en = "fish",               zh = "魚",         diff = "普通",    desc = "用zzz選個地方連續安詳的睡1小時，去安全區就行。" },
+    { en = "🗿",                  zh = "石像",       diff = "簡單",    desc = "自己踩自己放的trap/陷阱即可。" },
+    { en = "Obby",               zh = "跑酷",       diff = "普通",    desc = "在混亂的多人公服裡拿石頭，找人拿滾石把自己變巨石，等10個不同玩家因碰到自己而死亡。" },
+    { en = "Voodoo",             zh = "巫毒",       diff = "普通",    desc = "拿ghost/幽靈維持幽靈狀態一小時，一樣安全區的事。" },
+    { en = "Goofy",              zh = "混亂",       diff = "普通",    desc = "在困惑狀態下被混亂打到即可，主要難度是要找到有困惑和混亂手套的玩家。" },
+    { en = "Leash",              zh = "繩子",       diff = "困難",    desc = "要有16個人都拿著邪教進場才能獲得。" },
+    { en = "Flamarang",          zh = "火圈",       diff = "困難",    desc = "在任意服找到5個超殺，用boomerang/回力鏢把他們打下虛空，自己死了沒關係別離開伺服器就行。" },
+    { en = "Kinetic",            zh = "動能",       diff = "普通",    desc = "在公服用stun/暈眩倒地100次、用能力命中別人50次即可。" },
+    { en = "Berserk",            zh = "狂暴",       diff = "普通",    desc = "在公服要找到有動能的玩家，活過他的最大衝擊波3~4次。" },
+    { en = "Sparky",             zh = "極速",       diff = "中等",    desc = "要找到超殺、死神、conveyor，自己拿speedrun，被死神和運輸者打後用速跑全速衝向超殺後被超殺擊殺。" },
+    { en = "Boogie",             zh = "跳舞",       diff = "地獄",    desc = "在公服要有16人都在跳舞，堪稱死ten最瘋的時候做的手套。" },
+    { en = "Recall",             zh = "回憶",       diff = "普通",    desc = "新增回憶鴨後只要用反轉進過遺忘之地點回憶鴨即可，詳細解法去slap battle wiki。" },
+    { en = "Quake",              zh = "地震",       diff = "普通",    desc = "要有能完美配合的woah和home run把最大狂暴下的你擊退後打飛出去。" },
+    { en = "Psycho",             zh = "神經",       diff = "普通",    desc = "進遺忘之地後完成柱子跑酷，對貓玲來說直接用飛天就行。" },
+    { en = "Kraken",             zh = "海獸",       diff = "普通",    desc = "在任意服待5分鐘後，拿squid/烏賊被fish/魚打下虛空，然後打贏海獸boss就行。" },
+    { en = "Counter",            zh = "動漫",       diff = "簡單",    desc = "對貓玲來說跟閃避一樣，開Giang hub的事。" },
+    { en = "Hammer",             zh = "錘子",       diff = "普通",    desc = "撿別人用engineer/工程師在機器旁邊生成的工具箱即可，每次生成機器順帶生成工具箱的機率為10%。" },
+    { en = "rob",                zh = "rob",        diff = "中等",    desc = "包括自己要集齊至少4個人，各自拿死神、連殺、大亨、神手，其中或第五個人要有bob。" },
+    { en = "Rhythm",             zh = "音遊",       diff = "簡單",    desc = "一命內在跳舞期間拍擊10個在跳舞能力範圍的不同玩家，可以分開用多次能力解。" },
+    { en = "Rojo",               zh = "五條悟",     diff = "中等",    desc = "在任意服被死神打後，再被惡夢打，然後在自己為bob目標時殺死bob，只能用死亡方塊殺。" },
+    { en = "Hitman",             zh = "賞金獵人",   diff = "普通",    desc = "用track/導彈炸10個人到虛空，可以是同個人，還要點下大廳門下插向導的刀。" },
+    { en = "Retro",              zh = "復古",       diff = "普通",    desc = "用回憶在故障技能期間發動回溯能力，然後被錯誤打就可來到復古跑酷。" },
+    { en = "Null",               zh = "無",         diff = "普通",    desc = "用bob和rob融合開黑洞，用預設手套被吸進黑洞，之後去slap battle wiki，最後岔路選左。" },
+    { en = "Lure",               zh = "鯊魚",       diff = "中等",    desc = "用繩子同時繫著拿海獸、魚、烏賊的玩家。" },
+    { en = "Tinkerer",           zh = "修理工",     diff = "普通",    desc = "跟null一樣，但最後岔路選直走。" },
+    { en = "Necromancer",        zh = "死靈法師",   diff = "無法獲得", desc = "在萬聖節期間獲得2000個糖。" },
+    { en = "Alchemist",          zh = "鍊金術師",   diff = "簡單",    desc = "在任意服用瘟疫殺死10個不同玩家，打下虛空或毒殺都算。" },
+    { en = "Druid",              zh = "藤蔓",       diff = "簡單",    desc = "喝個藥，打個簡單塔防的事。" },
+    { en = "Jester",             zh = "小丑",       diff = "普通",    desc = "用閃避被打後傳送到死亡方塊。" },
+    { en = "Scythe",             zh = "鐮刀",       diff = "簡單",    desc = "跟藤蔓一樣，只是喝的藥不同，打的塔防也不同但還是很簡單。" },
+    { en = "Santa",              zh = "聖誕老人",   diff = "無法獲得", desc = "在雪球大戰中獲得65殺。" },
+    { en = "Iceskate",           zh = "溜冰",       diff = "簡單",    desc = "踩在溜冰的冰跡上讓自己結冰即可。" },
+    { en = "Blasphemy",          zh = "褻瀆",       diff = "普通",    desc = "用公車撞人時順便撞自己，或是讓別人用公車撞你，每次被撞都有1%被送去醫院並獲得手套。" },
+    { en = "Pan",                zh = "平底鍋",     diff = "普通",    desc = "去閃避的迷宮、無的黑洞、遺忘之地各拿一個娃娃然後去hitman那領手套。" },
+    { en = "Admin",              zh = "管理員",     diff = "普通",    desc = "去復古第二層繞過門到牌子後面點綠按紐，之後去看slap battle wiki，對貓玲來說用Giang hub傳送後掛機一小時。" },
+    { en = "Joust",              zh = "馬",         diff = "普通",    desc = "用30000拍的parry/格擋擋住衝過來的馬即可，主要是要找到有人用馬。" },
+    { en = "Firework",           zh = "煙火",       diff = "普通",    desc = "用鍊金拿到麵粉材料後進oven/烤箱，出來後把蛋糕吃了。" },
+    { en = "Run",                zh = "跑",         diff = "普通",    desc = "在任意服進別人用這手套造的迷宮並逃出10次，再回去hitman那領手套。" },
+    { en = "Glovel",             zh = "鏟子",       diff = "簡單",    desc = "去hitman那領任務後拿延長去砲島挖鏟子，挖到後去後面那紅x一直挖到有寶箱，有了後回去hitman那領手套。" },
+    { en = "Divebomb",           zh = "俯衝轟炸",   diff = "中等",    desc = "要領任務後在砲島把自己射過去黑洞5次。" },
+    { en = "Lamp",               zh = "燈",         diff = "簡單",    desc = "用zzz被惡夢打後找到燈泡撞碎後馬上用能力睡著，天亮後繼續，要重覆5次，但貓玲能用Giang hub直接解。" },
+    { en = "Knockoff",           zh = "斷頭",       diff = "簡單",    desc = "在pocket/口袋的空間中在密碼板那輸入4553293。" },
+    { en = "Frostbite",          zh = "凍傷",       diff = "簡單",    desc = "用冰砂踩在溜冰的冰跡後結凍，然後再被凍傷能力再凍一次，貓玲用Giang hub直接傳送+拿手套。" },
+    { en = "Plank",              zh = "木板",       diff = "簡單",    desc = "用fort/磚牆在最高的地方放牆，自己再站上去即可。" },
+    { en = "Spoonful",           zh = "湯匙",       diff = "簡單",    desc = "用大亨在任意服一次蓄到5000點。" },
+    { en = "the schlob",         zh = "schlob",     diff = "簡單",    desc = "拿魚坐cloud/雲後飛到最高點，然後用魚的能力跳到盤子上。" },
+    { en = "Siphon",             zh = "虹吸",       diff = "普通",    desc = "讓要幫的人把虹吸裝置丟到死亡方塊上後觸碰死亡方塊，之後會爆出藍球，觸碰即可獲得。" },
+    { en = "Wrench",             zh = "板手",       diff = "普通",    desc = "自己拿工程師，然後被thor/索爾的閃電電到後在電消失前拍擊自己的機器。" },
+    { en = "Hunter",             zh = "獵人",       diff = "簡單",    desc = "打贏向導boss戰後選殺了向導。" },
+    { en = "Relude",             zh = "Relude",     diff = "簡單",    desc = "最後選救向導上來。" },
+    { en = "Avatar",             zh = "虛擬",       diff = "簡單",    desc = "不拿第四心且不拿回血打贏向導。" },
+    { en = "Water",              zh = "水",         diff = "簡單",    desc = "在公服用鍊金解到所有藥水，目前是19個。" },
+    { en = "Fan",                zh = "風扇",       diff = "簡單",    desc = "去巴西把oog炸了救oog。" },
+    { en = "Boxer",              zh = "拳擊手",     diff = "簡單",    desc = "去巴西後上屋頂進煙囪後走到底點拳套。" },
+    { en = "MATERIALIZE",        zh = "物質化",     diff = "普通",    desc = "當黃球或紫球在場上存在1~3分鐘都沒人拿時，會變成閃電藍球，碰到就能獲得。" },
+    { en = "Bind",               zh = "鎖鍊",       diff = "簡單",    desc = "用鍊金把一紅一藍水晶三木板混成藥水，喝下後會被傳送到紫迷宮，走到終點點擊手套。" },
+    { en = "Poltergeist",        zh = "萬聖節鬼",  diff = "無法獲得", desc = "打僵屍。" },
+    { en = "Clock",              zh = "時鐘",       diff = "簡單",    desc = "去巴西塔尖頂等傳送，之後的去看slap battle wiki。" },
+    { en = "Untitled Tag Glove", zh = "無標籤",     diff = "簡單",    desc = "去巴西跳上一堆屋子後跑酷，到終點的屋子那點牌子後傳送到紅跑酷塔，傳送後點牌子就行。" },
+    { en = "Pillow",             zh = "枕頭",       diff = "普通",    desc = "類似貓戰，但你可以只用那200塊就能買的坦克角一直狂放，對於貓玲來說...bringpart Meshes/pillow1 把枕頭一次全傳送。" },
+    { en = "Angler",             zh = "釣魚",       diff = "普通",    desc = "在公服用鯊魚的能力擊殺10人，能是同個人。" },
+    { en = "Jerry",              zh = "傑里",       diff = "無法獲得", desc = "在聖誕期間把snowpeep找齊後進boss戰，把Jerry打死就行。" },
+    { en = "Snowroller",         zh = "滾雪者",     diff = "普通",    desc = "在解枕頭那的樹下拿黑球傳送，之後對貓玲來說就是穿牆+飛行。" },
+    { en = "Draw4",              zh = "Draw4",      diff = "普通",    desc = "在任意服讓乒乓球反彈10回合以上。" },
+    { en = "Mouse",              zh = "老鼠",       diff = "簡單",    desc = "用貓去砲島點起司，剩下的夠簡單了。" },
+    { en = "Hexa",               zh = "六角",       diff = "簡單",    desc = "拿跑酷手套的長棍子地形搭個六邊形，剩下的去查slap battle wiki。" },
+    { en = "Metaverse",          zh = "元宇宙",     diff = "簡單",    desc = "去巴西的塔上跟紫球對話10次後會有黑門，進去後會傳送，剩下的去查slap battle wiki。" },
+    { en = "Swordfighter",       zh = "劍士",       diff = "簡單",    desc = "拿復古去砲島砸柱子砸出洞後進去傳送，跑完跑酷後打贏ajax拿到他爸的劍。" },
+    { en = "Tank",               zh = "坦克",       diff = "普通",    desc = "用50000拍的槍刷到30錢後去商人換6發爆炸彈，用拿6發打爆滿級的枕頭堡壘。" },
+    { en = "Eggler",             zh = "耀西",       diff = "簡單",    desc = "去接任務撿到10個蛋後回去hitman那點eggdog後過3個蛋跑酷就行。" },
+    { en = "Slender",            zh = "瘦長人",     diff = "簡單",    desc = "拿任務，知道神秘代碼後去口袋空間輸入，點紙頁，拉拉桿，點牌子傳進去後拿7張紙。" },
+    { en = "Swashbuckler",       zh = "海盜",       diff = "普通",    desc = "放最長的木板然後讓鯊魚打要解的海獸，鯊魚放水池後海獸走到木板末端跳下。" },
+    { en = "Silly",              zh = "滑稽",       diff = "普通",    desc = "拿baby/嬰兒被混亂打後開吵鬧，然後被風扇吹飛。" },
+    { en = "Slasher",            zh = "斬首者",     diff = "普通",    desc = "進run的迷宮的壁畫後經過一些操作後打死boss。" },
+    { en = "Car Keys",           zh = "車鑰匙",     diff = "普通",    desc = "讓車鑰匙用車能力並有座位後讓要解的adios坐上發動能力，傳送後跟ai比賽車勝利即可。" },
+    { en = "Suction",            zh = "馬桶",       diff = "普通",    desc = "點兩馬桶塞，向導門上和死亡方塊下，傳送後跑到終點。" },
+    { en = "Reflect",            zh = "反射",       diff = "普通",    desc = "在hitman那完成任意四個任務後進白門，打贏那boss。" },
+    { en = "Dave",               zh = "戴夫",       diff = "簡單",    desc = "還要說什麼嗎。" },
+    { en = "mortis",             zh = "莫提斯",     diff = "簡單",    desc = "也就戴夫的困難版。" },
+    { en = "Bounty",             zh = "賞金",       diff = "簡單",    desc = "用hitman拿到黃金槍，250賞金。" },
+    { en = "Debug",              zh = "除錯",       diff = "簡單",    desc = "被故障吸到後上上下下左左右右，之後進到個神秘地方。要密碼可以叫貓玲去你的服，或是去slap battle wiki看怎解。" },
+    { en = "Paint",              zh = "顏料",       diff = "簡單",    desc = "賞金地下室的梯子上有顏料漆，點下傳送後跟4個機器人比誰塗的顏料多。" },
+    { en = "Plate",              zh = "盤子",       diff = "簡單",    desc = "一直打盤子上的牌子讓他紅溫，之後撐過2分鐘的障礙賽。" },
+    { en = "Lag",                zh = "延遲",       diff = "簡單",    desc = "浮空10秒鐘。" },
+    { en = "Harvester",          zh = "收成者",     diff = "無法獲得", desc = "通過一堆迷宮後跟斬首者玩追逐戰。" },
+    { en = "Riftshot",           zh = "弓箭",       diff = "簡單",    desc = "去巴西射炸彈，別射靶。" },
+    { en = "Conker",             zh = "七葉樹",     diff = "簡單",    desc = "做任務、撿果實、打松鼠、有20就通關。" },
+    { en = "Wheelchair",         zh = "輪椅",       diff = "普通",    desc = "被桌子、褻瀆、bull/公牛、炸彈、lolbomb、slicer的拍擊打到且不死亡。" },
+    { en = "Elf",                zh = "精靈",       diff = "無法獲得", desc = "好像是要在聖誕節雪球大戰中每個角都有350點雪分數。" },
+    { en = "Shopkeeper",         zh = "店主",       diff = "簡單",    desc = "拿延長去地下室點紙，之後去賣手套賣到有3000塊去跟神秘商人換手套。" },
+    { en = "Collector",          zh = "收集者",     diff = "簡單",    desc = "去地下室點主地圖的模形，之後就去玩你的找手套模擬器吧。" },
+    { en = "Glaxe",              zh = "伐木工",     diff = "普通",    desc = "去皇家撿斧頭，把一個人打到40血以下後用斧頭砍死他。" },
+    { en = "Pinata",             zh = "皮納塔",     diff = "普通",    detectKey = "Piñata", desc = "用鍊金拿麵粉後進烤箱，出來後把蛋糕放樹果島的桌子上，等蛋糕消失後在兩側小島其中一個會有皮納塔出現，打爆他即可。" },
+    { en = "Penguin",            zh = "企鵝",       diff = "簡單",    desc = "跟企鵝玩滑冰吃魚和記憶力。" },
+    { en = "Undead",             zh = "殭屍",       diff = "簡單",    desc = "在時鐘能力快從復活時間轉到下一個能力前，跳下虛空。" },
+    { en = "Groundbreaker",      zh = "破地者",     diff = "中等",    desc = "用地震同時埋了3個人並都打到虛空。" },
 }
 
--- 難度順序對應
-local DIFF_ORDER = {
-    ["簡單"] = 1, ["普通"] = 2, ["中等"] = 3,
-    ["困難"] = 4, ["地獄"] = 5, ["無法獲得"] = 6,
-}
 local DIFF_COLOR = {
     ["簡單"]   = Color3.fromRGB( 40, 200,  90),
     ["普通"]   = Color3.fromRGB(160, 200,  80),
@@ -215,6 +208,149 @@ end
 parentUI(screenGui)
 
 -- ============================================================
+-- 共用詳細頁（頁面1 & 頁面2 共用）
+-- ============================================================
+-- 建立在 screenGui 層的 detailOverlay，蓋在主框架上方
+local detailOverlay = Instance.new("Frame")
+detailOverlay.Size = UDim2.new(0, 280, 0, 340)
+detailOverlay.Position = UDim2.new(0.5, -140, 0.5, -170)
+detailOverlay.BackgroundColor3 = THEME.bg
+detailOverlay.BorderSizePixel = 0
+detailOverlay.Visible = false
+detailOverlay.ZIndex = 50
+detailOverlay.Parent = screenGui
+Instance.new("UICorner", detailOverlay).CornerRadius = UDim.new(0, 10)
+local detailStroke = Instance.new("UIStroke")
+detailStroke.Color = THEME.primaryDark; detailStroke.Thickness = 1.5
+detailStroke.Parent = detailOverlay
+
+-- 詳細頁標題列
+local detailTitleBar = Instance.new("Frame")
+detailTitleBar.Size = UDim2.new(1, 0, 0, 32)
+detailTitleBar.BackgroundColor3 = THEME.titleBg
+detailTitleBar.ZIndex = 51
+detailTitleBar.Parent = detailOverlay
+Instance.new("UICorner", detailTitleBar).CornerRadius = UDim.new(0, 10)
+
+local detailTitleLbl = Instance.new("TextLabel")
+detailTitleLbl.Size = UDim2.new(1, -70, 1, 0)
+detailTitleLbl.Position = UDim2.new(0, 8, 0, 0)
+detailTitleLbl.BackgroundTransparency = 1
+detailTitleLbl.Text = "手套說明"
+detailTitleLbl.TextSize = 12; detailTitleLbl.Font = Enum.Font.GothamBold
+detailTitleLbl.TextColor3 = THEME.accent
+detailTitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+detailTitleLbl.ZIndex = 51
+detailTitleLbl.Parent = detailTitleBar
+
+local detailBackBtn = Instance.new("TextButton")
+detailBackBtn.Size = UDim2.new(0, 56, 0, 24)
+detailBackBtn.Position = UDim2.new(1, -64, 0, 4)
+detailBackBtn.BackgroundColor3 = THEME.tabActive
+detailBackBtn.Text = "← 返回"
+detailBackBtn.TextSize = 11; detailBackBtn.Font = Enum.Font.GothamBold
+detailBackBtn.TextColor3 = THEME.textMain
+detailBackBtn.AutoButtonColor = false
+detailBackBtn.ZIndex = 51
+detailBackBtn.Parent = detailTitleBar
+Instance.new("UICorner", detailBackBtn).CornerRadius = UDim.new(0, 5)
+
+-- 詳細內容捲軸
+local detailScroll = Instance.new("ScrollingFrame")
+detailScroll.Size = UDim2.new(1, -8, 1, -38)
+detailScroll.Position = UDim2.new(0, 4, 0, 36)
+detailScroll.BackgroundTransparency = 1; detailScroll.BorderSizePixel = 0
+detailScroll.ScrollBarThickness = 3
+detailScroll.ScrollBarImageColor3 = THEME.primary
+detailScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+detailScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+detailScroll.ZIndex = 51
+detailScroll.Parent = detailOverlay
+
+local detailInnerLayout = Instance.new("UIListLayout")
+detailInnerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+detailInnerLayout.Padding = UDim.new(0, 6)
+detailInnerLayout.Parent = detailScroll
+
+local detailInnerPad = Instance.new("UIPadding")
+detailInnerPad.PaddingLeft = UDim.new(0, 6)
+detailInnerPad.PaddingRight = UDim.new(0, 6)
+detailInnerPad.PaddingTop = UDim.new(0, 6)
+detailInnerPad.Parent = detailScroll
+
+-- 英文名
+local dEnLbl = Instance.new("TextLabel")
+dEnLbl.Size = UDim2.new(1, 0, 0, 26)
+dEnLbl.BackgroundTransparency = 1
+dEnLbl.Text = ""; dEnLbl.TextSize = 17; dEnLbl.Font = Enum.Font.GothamBold
+dEnLbl.TextColor3 = THEME.accent; dEnLbl.TextXAlignment = Enum.TextXAlignment.Left
+dEnLbl.TextWrapped = true; dEnLbl.LayoutOrder = 1; dEnLbl.ZIndex = 51
+dEnLbl.Parent = detailScroll
+
+-- 中文名
+local dZhLbl = Instance.new("TextLabel")
+dZhLbl.Size = UDim2.new(1, 0, 0, 20)
+dZhLbl.BackgroundTransparency = 1
+dZhLbl.Text = ""; dZhLbl.TextSize = 13; dZhLbl.Font = Enum.Font.Gotham
+dZhLbl.TextColor3 = THEME.textSub; dZhLbl.TextXAlignment = Enum.TextXAlignment.Left
+dZhLbl.LayoutOrder = 2; dZhLbl.ZIndex = 51
+dZhLbl.Parent = detailScroll
+
+-- 難度
+local dDiffLbl = Instance.new("TextLabel")
+dDiffLbl.Size = UDim2.new(1, 0, 0, 20)
+dDiffLbl.BackgroundTransparency = 1
+dDiffLbl.Text = ""; dDiffLbl.TextSize = 12; dDiffLbl.Font = Enum.Font.GothamBold
+dDiffLbl.TextXAlignment = Enum.TextXAlignment.Left
+dDiffLbl.LayoutOrder = 3; dDiffLbl.ZIndex = 51
+dDiffLbl.Parent = detailScroll
+
+-- 分隔線
+local dDivider = Instance.new("Frame")
+dDivider.Size = UDim2.new(1, 0, 0, 1)
+dDivider.BackgroundColor3 = THEME.primaryDark; dDivider.BorderSizePixel = 0
+dDivider.LayoutOrder = 4; dDivider.ZIndex = 51
+dDivider.Parent = detailScroll
+
+-- 說明框
+local dDescBox = Instance.new("Frame")
+dDescBox.Size = UDim2.new(1, 0, 0, 0)
+dDescBox.AutomaticSize = Enum.AutomaticSize.Y
+dDescBox.BackgroundColor3 = THEME.bgRow; dDescBox.BorderSizePixel = 0
+dDescBox.LayoutOrder = 5; dDescBox.ZIndex = 51
+dDescBox.Parent = detailScroll
+Instance.new("UICorner", dDescBox).CornerRadius = UDim.new(0, 6)
+
+local dDescPad = Instance.new("UIPadding")
+dDescPad.PaddingLeft = UDim.new(0, 8); dDescPad.PaddingRight = UDim.new(0, 8)
+dDescPad.PaddingTop = UDim.new(0, 8); dDescPad.PaddingBottom = UDim.new(0, 8)
+dDescPad.Parent = dDescBox
+
+local dDescLbl = Instance.new("TextLabel")
+dDescLbl.Size = UDim2.new(1, 0, 0, 0)
+dDescLbl.AutomaticSize = Enum.AutomaticSize.Y
+dDescLbl.BackgroundTransparency = 1
+dDescLbl.Text = ""; dDescLbl.TextSize = 12; dDescLbl.Font = Enum.Font.Gotham
+dDescLbl.TextColor3 = THEME.textMain; dDescLbl.TextXAlignment = Enum.TextXAlignment.Left
+dDescLbl.TextWrapped = true; dDescLbl.ZIndex = 51
+dDescLbl.Parent = dDescBox
+
+-- 開啟詳細頁函式（共用）
+local function openDetail(glove)
+    dEnLbl.Text  = glove.en
+    dZhLbl.Text  = glove.zh
+    dDiffLbl.Text = "難度：" .. glove.diff
+    dDiffLbl.TextColor3 = DIFF_COLOR[glove.diff] or THEME.textMuted
+    dDescLbl.Text = glove.desc
+    detailScroll.CanvasPosition = Vector2.new(0, 0)
+    detailOverlay.Visible = true
+end
+
+detailBackBtn.MouseButton1Click:Connect(function()
+    detailOverlay.Visible = false
+end)
+
+-- ============================================================
 -- 主框架
 -- ============================================================
 local mainFrame = Instance.new("Frame")
@@ -236,7 +372,7 @@ Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -60, 1, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "貓玲的手套偵測工具 v1.1"
+titleLabel.Text = "貓玲的手套偵測工具 v1.2"
 titleLabel.TextSize = 11; titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextColor3 = THEME.accent
 titleLabel.TextXAlignment = Enum.TextXAlignment.Center
@@ -248,6 +384,7 @@ minimizeBtn.Position = UDim2.new(1, -54, 0, 4)
 minimizeBtn.BackgroundColor3 = THEME.tabActive
 minimizeBtn.Text = "─"; minimizeBtn.TextColor3 = THEME.textMain
 minimizeBtn.Font = Enum.Font.GothamBold; minimizeBtn.TextSize = 12
+minimizeBtn.AutoButtonColor = false
 minimizeBtn.Parent = titleBar
 Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 5)
 
@@ -257,6 +394,7 @@ closeBtn.Position = UDim2.new(1, -28, 0, 4)
 closeBtn.BackgroundColor3 = THEME.red
 closeBtn.Text = "X"; closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
 closeBtn.Font = Enum.Font.GothamBold; closeBtn.TextSize = 12
+closeBtn.AutoButtonColor = false
 closeBtn.Parent = titleBar
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 5)
 
@@ -301,7 +439,6 @@ tabPad.Parent = tabInner
 local tabButtons = {}
 for i, name in ipairs(tabNames) do
     local tb = Instance.new("TextButton")
-    -- 加寬分頁按鈕，防止文字漏餡
     tb.Size = UDim2.new(0, 96, 0, 22)
     tb.BackgroundColor3 = THEME.tabBg
     tb.Text = name; tb.TextSize = 11
@@ -364,53 +501,120 @@ page1.BackgroundTransparency = 1
 page1.Visible = true
 page1.Parent = contentContainer
 
--- 頂部控制區
+-- 頂部控制區（加高到 76px，放進難度篩選）
 local ctrlFrame = Instance.new("Frame")
-ctrlFrame.Size = UDim2.new(1, 0, 0, 56)
+ctrlFrame.Size = UDim2.new(1, 0, 0, 76)
 ctrlFrame.BackgroundColor3 = THEME.bgRow
 ctrlFrame.Parent = page1
 Instance.new("UICorner", ctrlFrame).CornerRadius = UDim.new(0, 6)
 
+-- 第一行：目標 + 偵測按鈕
 local tgtLabel = Instance.new("TextLabel")
-tgtLabel.Size = UDim2.new(0, 60, 0, 20)
-tgtLabel.Position = UDim2.new(0, 6, 0, 4)
+tgtLabel.Size = UDim2.new(0, 56, 0, 20)
+tgtLabel.Position = UDim2.new(0, 6, 0, 6)
 tgtLabel.BackgroundTransparency = 1
 tgtLabel.Text = "偵測目標:"
 tgtLabel.TextSize = 11; tgtLabel.Font = Enum.Font.GothamBold
-tgtLabel.TextColor3 = THEME.textSub
-tgtLabel.TextXAlignment = Enum.TextXAlignment.Left
+tgtLabel.TextColor3 = THEME.textSub; tgtLabel.TextXAlignment = Enum.TextXAlignment.Left
 tgtLabel.Parent = ctrlFrame
 
-local targetInput = makeInput(ctrlFrame, "空白=偵測自己", 66, 4, 140, 20)
+local targetInput = makeInput(ctrlFrame, "空白=偵測自己", 64, 6, 152, 20)
 
+local scanBtn = makeButton(ctrlFrame, "偵測", 220, 6, 42, 20)
+
+-- 第二行：字體 + 難度篩選
 local fontLabel = Instance.new("TextLabel")
-fontLabel.Size = UDim2.new(0, 40, 0, 18)
+fontLabel.Size = UDim2.new(0, 36, 0, 18)
 fontLabel.Position = UDim2.new(0, 6, 0, 32)
 fontLabel.BackgroundTransparency = 1
 fontLabel.Text = "字體:"
 fontLabel.TextSize = 10; fontLabel.Font = Enum.Font.Gotham
-fontLabel.TextColor3 = THEME.textMuted
-fontLabel.TextXAlignment = Enum.TextXAlignment.Left
+fontLabel.TextColor3 = THEME.textMuted; fontLabel.TextXAlignment = Enum.TextXAlignment.Left
 fontLabel.Parent = ctrlFrame
 
-local p1FontInput = makeInput(ctrlFrame, "11", 46, 32, 36, 18)
+local p1FontInput = makeInput(ctrlFrame, "11", 42, 32, 34, 18)
 p1FontInput.Text = "11"
 
-local scanBtn = makeButton(ctrlFrame, "偵測", 210, 4, 48, 20)
+-- 難度篩選（頁面1）
+local p1DiffLabel = Instance.new("TextLabel")
+p1DiffLabel.Size = UDim2.new(0, 36, 0, 18)
+p1DiffLabel.Position = UDim2.new(0, 82, 0, 32)
+p1DiffLabel.BackgroundTransparency = 1
+p1DiffLabel.Text = "難度:"
+p1DiffLabel.TextSize = 10; p1DiffLabel.Font = Enum.Font.Gotham
+p1DiffLabel.TextColor3 = THEME.textMuted; p1DiffLabel.TextXAlignment = Enum.TextXAlignment.Left
+p1DiffLabel.Parent = ctrlFrame
+
+local p1DiffBtn = Instance.new("TextButton")
+p1DiffBtn.Size = UDim2.new(0, 70, 0, 18)
+p1DiffBtn.Position = UDim2.new(0, 118, 0, 32)
+p1DiffBtn.BackgroundColor3 = THEME.tabBg
+p1DiffBtn.Text = "全部 ▾"; p1DiffBtn.TextSize = 10; p1DiffBtn.Font = Enum.Font.GothamBold
+p1DiffBtn.TextColor3 = THEME.textMain; p1DiffBtn.AutoButtonColor = false
+p1DiffBtn.Parent = ctrlFrame
+Instance.new("UICorner", p1DiffBtn).CornerRadius = UDim.new(0, 4)
+
+-- 第三行：狀態文字
 local statusLbl = Instance.new("TextLabel")
-statusLbl.Size = UDim2.new(0, 100, 0, 18)
-statusLbl.Position = UDim2.new(0, 210, 0, 28)
+statusLbl.Size = UDim2.new(1, -12, 0, 16)
+statusLbl.Position = UDim2.new(0, 6, 0, 56)
 statusLbl.BackgroundTransparency = 1
 statusLbl.Text = "等待偵測"
 statusLbl.TextSize = 10; statusLbl.Font = Enum.Font.Gotham
-statusLbl.TextColor3 = THEME.textMuted
-statusLbl.TextXAlignment = Enum.TextXAlignment.Left
+statusLbl.TextColor3 = THEME.textMuted; statusLbl.TextXAlignment = Enum.TextXAlignment.Left
+statusLbl.TextTruncate = Enum.TextTruncate.AtEnd   -- ← 玩家名超出自動截斷
 statusLbl.Parent = ctrlFrame
+
+-- 頁面1 難度下拉
+local p1DiffDropdown = Instance.new("Frame")
+p1DiffDropdown.Size = UDim2.new(0, 80, 0, 0)
+p1DiffDropdown.Position = UDim2.new(0, 118, 0, 52)
+p1DiffDropdown.BackgroundColor3 = THEME.bgInput
+p1DiffDropdown.ClipsDescendants = true
+p1DiffDropdown.Visible = false
+p1DiffDropdown.ZIndex = 30
+p1DiffDropdown.Parent = ctrlFrame
+Instance.new("UICorner", p1DiffDropdown).CornerRadius = UDim.new(0, 4)
+
+local DIFF_OPTIONS = {"全部難度","簡單","普通","中等","困難","地獄","無法獲得"}
+local DIFF_SHORT   = {"全部","簡單","普通","中等","困難","地獄","無法"}
+local p1SelectedDiff = "全部難度"
+
+local function rebuildP1() end  -- 前向宣告，後面補上
+
+for i, opt in ipairs(DIFF_OPTIONS) do
+    local db = Instance.new("TextButton")
+    db.Size = UDim2.new(1, 0, 0, 20)
+    db.Position = UDim2.new(0, 0, 0, (i-1)*20)
+    db.BackgroundTransparency = 0.5
+    db.BackgroundColor3 = THEME.tabBg
+    db.Text = opt; db.TextSize = 10; db.Font = Enum.Font.Gotham
+    db.TextColor3 = (opt == "全部難度") and THEME.textMain or (DIFF_COLOR[opt] or THEME.textMain)
+    db.ZIndex = 31; db.AutoButtonColor = false
+    db.Parent = p1DiffDropdown
+    db.MouseButton1Click:Connect(function()
+        p1SelectedDiff = opt
+        p1DiffBtn.Text = DIFF_SHORT[i] .. " ▾"
+        p1DiffDropdown.Visible = false
+        p1DiffDropdown.Size = UDim2.new(0, 80, 0, 0)
+        rebuildP1()
+    end)
+end
+
+p1DiffBtn.MouseButton1Click:Connect(function()
+    if p1DiffDropdown.Visible then
+        p1DiffDropdown.Visible = false
+        p1DiffDropdown.Size = UDim2.new(0, 80, 0, 0)
+    else
+        p1DiffDropdown.Size = UDim2.new(0, 80, 0, #DIFF_OPTIONS * 20)
+        p1DiffDropdown.Visible = true
+    end
+end)
 
 -- 結果區 - 分兩欄（有/沒有）
 local resultsFrame = Instance.new("Frame")
-resultsFrame.Size = UDim2.new(1, 0, 0, 214)
-resultsFrame.Position = UDim2.new(0, 0, 0, 60)
+resultsFrame.Size = UDim2.new(1, 0, 0, 192)   -- 縮短一點補給控制區加高
+resultsFrame.Position = UDim2.new(0, 0, 0, 80)
 resultsFrame.BackgroundTransparency = 1
 resultsFrame.Parent = page1
 
@@ -427,8 +631,7 @@ haveTitle.Size = UDim2.new(1, 0, 0, 18)
 haveTitle.BackgroundColor3 = Color3.fromRGB(20, 80, 35)
 haveTitle.Text = "✅ 已解鎖"
 haveTitle.TextSize = 10; haveTitle.Font = Enum.Font.GothamBold
-haveTitle.TextColor3 = THEME.green
-haveTitle.TextXAlignment = Enum.TextXAlignment.Center
+haveTitle.TextColor3 = THEME.green; haveTitle.TextXAlignment = Enum.TextXAlignment.Center
 haveTitle.Parent = haveFrame
 Instance.new("UICorner", haveTitle).CornerRadius = UDim.new(0, 6)
 
@@ -442,11 +645,11 @@ haveScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 haveScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 haveScroll.Parent = haveFrame
 local haveLayout = Instance.new("UIListLayout")
-haveLayout.Padding = UDim.new(0, 1)
-haveLayout.SortOrder = Enum.SortOrder.LayoutOrder
+haveLayout.Padding = UDim.new(0, 1); haveLayout.SortOrder = Enum.SortOrder.LayoutOrder
 haveLayout.Parent = haveScroll
 local havePad = Instance.new("UIPadding")
-havePad.PaddingLeft = UDim.new(0, 3); havePad.PaddingTop = UDim.new(0, 2); havePad.PaddingRight = UDim.new(0, 3)
+havePad.PaddingLeft = UDim.new(0, 3); havePad.PaddingTop = UDim.new(0, 2)
+havePad.PaddingRight = UDim.new(0, 3)
 havePad.Parent = haveScroll
 
 -- 沒有的那欄
@@ -462,8 +665,7 @@ missingTitle.Size = UDim2.new(1, 0, 0, 18)
 missingTitle.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
 missingTitle.Text = "❌ 未解鎖"
 missingTitle.TextSize = 10; missingTitle.Font = Enum.Font.GothamBold
-missingTitle.TextColor3 = THEME.red
-missingTitle.TextXAlignment = Enum.TextXAlignment.Center
+missingTitle.TextColor3 = THEME.red; missingTitle.TextXAlignment = Enum.TextXAlignment.Center
 missingTitle.Parent = missingFrame
 Instance.new("UICorner", missingTitle).CornerRadius = UDim.new(0, 6)
 
@@ -477,13 +679,14 @@ missingScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 missingScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 missingScroll.Parent = missingFrame
 local missingLayout = Instance.new("UIListLayout")
-missingLayout.Padding = UDim.new(0, 1)
-missingLayout.SortOrder = Enum.SortOrder.LayoutOrder
+missingLayout.Padding = UDim.new(0, 1); missingLayout.SortOrder = Enum.SortOrder.LayoutOrder
 missingLayout.Parent = missingScroll
 local missingPad = Instance.new("UIPadding")
-missingPad.PaddingLeft = UDim.new(0, 3); missingPad.PaddingTop = UDim.new(0, 2); missingPad.PaddingRight = UDim.new(0, 3)
+missingPad.PaddingLeft = UDim.new(0, 3); missingPad.PaddingTop = UDim.new(0, 2)
+missingPad.PaddingRight = UDim.new(0, 3)
 missingPad.Parent = missingScroll
 
+-- 字體設定
 local currentP1FontSize = 11
 p1FontInput.FocusLost:Connect(function()
     local v = tonumber(p1FontInput.Text)
@@ -491,30 +694,105 @@ p1FontInput.FocusLost:Connect(function()
     p1FontInput.Text = tostring(v)
     currentP1FontSize = v
     for _, child in ipairs(haveScroll:GetChildren()) do
-        if child:IsA("TextLabel") then child.TextSize = v end
+        if child:IsA("TextButton") then
+            for _, lbl in ipairs(child:GetChildren()) do
+                if lbl:IsA("TextLabel") then lbl.TextSize = v end
+            end
+        end
     end
     for _, child in ipairs(missingScroll:GetChildren()) do
-        if child:IsA("TextLabel") then child.TextSize = v end
+        if child:IsA("TextButton") then
+            for _, lbl in ipairs(child:GetChildren()) do
+                if lbl:IsA("TextLabel") then lbl.TextSize = v end
+            end
+        end
     end
 end)
 
-local function addGloveEntry(scrollFrame, glove, hasIt)
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 16)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = glove.en .. "/" .. glove.zh
-    lbl.TextSize = currentP1FontSize
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextColor3 = hasIt and THEME.green or THEME.textMuted
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.TextTruncate = Enum.TextTruncate.AtEnd
-    lbl.Parent = scrollFrame
+-- 建立偵測結果列（按鈕，可點擊開說明）
+local function addGloveRow(scrollFrame, glove, hasIt)
+    local rowH = currentP1FontSize + 10
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, rowH)
+    btn.BackgroundTransparency = 1
+    btn.Text = ""; btn.AutoButtonColor = false
+    btn.Parent = scrollFrame
+
+    -- 英文
+    local enLbl = Instance.new("TextLabel")
+    enLbl.Size = UDim2.new(0.45, 0, 1, 0)
+    enLbl.Position = UDim2.new(0, 0, 0, 0)
+    enLbl.BackgroundTransparency = 1
+    enLbl.Text = glove.en
+    enLbl.TextSize = currentP1FontSize; enLbl.Font = Enum.Font.GothamBold
+    enLbl.TextColor3 = hasIt and THEME.green or THEME.missing
+    enLbl.TextXAlignment = Enum.TextXAlignment.Left
+    enLbl.TextTruncate = Enum.TextTruncate.AtEnd
+    enLbl.Parent = btn
+
+    -- 中文
+    local zhLbl = Instance.new("TextLabel")
+    zhLbl.Size = UDim2.new(0.3, 0, 1, 0)
+    zhLbl.Position = UDim2.new(0.45, 0, 0, 0)
+    zhLbl.BackgroundTransparency = 1
+    zhLbl.Text = glove.zh
+    zhLbl.TextSize = currentP1FontSize; zhLbl.Font = Enum.Font.Gotham
+    zhLbl.TextColor3 = hasIt and Color3.fromRGB(120, 230, 160) or Color3.fromRGB(200, 130, 110)
+    zhLbl.TextXAlignment = Enum.TextXAlignment.Left
+    zhLbl.TextTruncate = Enum.TextTruncate.AtEnd
+    zhLbl.Parent = btn
+
+    -- 難度
+    local diffLbl = Instance.new("TextLabel")
+    diffLbl.Size = UDim2.new(0.25, -2, 1, 0)
+    diffLbl.Position = UDim2.new(0.75, 0, 0, 0)
+    diffLbl.BackgroundTransparency = 1
+    diffLbl.Text = glove.diff
+    diffLbl.TextSize = math.max(8, currentP1FontSize - 1); diffLbl.Font = Enum.Font.Gotham
+    diffLbl.TextColor3 = DIFF_COLOR[glove.diff] or THEME.textMuted
+    diffLbl.TextXAlignment = Enum.TextXAlignment.Right
+    diffLbl.TextTruncate = Enum.TextTruncate.AtEnd
+    diffLbl.Parent = btn
+
+    -- 點擊開詳情
+    local capturedGlove = glove
+    btn.MouseButton1Click:Connect(function() openDetail(capturedGlove) end)
+    btn.MouseEnter:Connect(function()
+        enLbl.TextColor3 = THEME.accent
+    end)
+    btn.MouseLeave:Connect(function()
+        enLbl.TextColor3 = hasIt and THEME.green or THEME.missing
+    end)
 end
 
 local function clearScrollFrame(sf)
     for _, c in ipairs(sf:GetChildren()) do
-        if c:IsA("TextLabel") then c:Destroy() end
+        if not c:IsA("UIListLayout") and not c:IsA("UIPadding") then c:Destroy() end
     end
+end
+
+-- 存放偵測結果（供難度篩選用）
+local p1ScanResults = {}   -- { glove=, hasIt= }
+
+function rebuildP1()
+    clearScrollFrame(haveScroll)
+    clearScrollFrame(missingScroll)
+    local haveCount = 0
+    local missingCount = 0
+    for _, r in ipairs(p1ScanResults) do
+        local matchDiff = p1SelectedDiff == "全部難度" or r.glove.diff == p1SelectedDiff
+        if matchDiff then
+            if r.hasIt then
+                addGloveRow(haveScroll, r.glove, true)
+                haveCount = haveCount + 1
+            else
+                addGloveRow(missingScroll, r.glove, false)
+                missingCount = missingCount + 1
+            end
+        end
+    end
+    haveTitle.Text   = string.format("✅ 已解鎖 (%d)", haveCount)
+    missingTitle.Text = string.format("❌ 未解鎖 (%d)", missingCount)
 end
 
 local function doScan()
@@ -524,10 +802,10 @@ local function doScan()
     if targetName == "" then
         targetPlayer = player
     else
-        targetName = targetName:lower()
+        local tn = targetName:lower()
         for _, p in ipairs(Players:GetPlayers()) do
-            if p.Name:lower():sub(1, #targetName) == targetName
-            or p.DisplayName:lower():sub(1, #targetName) == targetName then
+            if p.Name:lower():sub(1, #tn) == tn
+            or p.DisplayName:lower():sub(1, #tn) == tn then
                 targetPlayer = p; break
             end
         end
@@ -541,13 +819,12 @@ local function doScan()
 
     statusLbl.Text = "偵測中..."
     statusLbl.TextColor3 = THEME.accent
-
+    p1ScanResults = {}
     clearScrollFrame(haveScroll)
     clearScrollFrame(missingScroll)
 
     task.spawn(function()
         local unlockedGloves = targetPlayer:FindFirstChild("_unlockedGloves")
-
         if not unlockedGloves then
             local t0 = tick()
             while not unlockedGloves and tick() - t0 < 5 do
@@ -562,27 +839,19 @@ local function doScan()
             return
         end
 
-        local haveCount = 0
-        local missingCount = 0
-
         for _, glove in ipairs(GLOVE_DATA) do
-            -- 決定要偵測的 key：優先使用 detectKey，否則用 en
             local key = glove.detectKey or glove.en
             local child = unlockedGloves:FindFirstChild(key)
-            -- child 存在且 value 為 true → 已解鎖；不存在或 value 為 false → 未解鎖
             local hasIt = child ~= nil and (child.Value == true)
-            if hasIt then
-                addGloveEntry(haveScroll, glove, true)
-                haveCount = haveCount + 1
-            else
-                addGloveEntry(missingScroll, glove, false)
-                missingCount = missingCount + 1
-            end
+            table.insert(p1ScanResults, { glove = glove, hasIt = hasIt })
         end
 
-        haveTitle.Text = string.format("✅ 已解鎖 (%d)", haveCount)
-        missingTitle.Text = string.format("❌ 未解鎖 (%d)", missingCount)
-        statusLbl.Text = string.format("完成 %s", targetPlayer.Name)
+        rebuildP1()
+
+        -- 玩家名截斷顯示
+        local displayName = targetPlayer.Name
+        if #displayName > 20 then displayName = displayName:sub(1, 17) .. "..." end
+        statusLbl.Text = "完成 " .. displayName
         statusLbl.TextColor3 = THEME.green
     end)
 end
@@ -598,179 +867,59 @@ page2.BackgroundTransparency = 1
 page2.Visible = false
 page2.Parent = contentContainer
 
--- 搜尋界面
-local searchView = Instance.new("Frame")
-searchView.Size = UDim2.new(1, 0, 1, 0)
-searchView.BackgroundTransparency = 1
-searchView.Visible = true
-searchView.Parent = page2
-
--- 詳細界面
-local detailView = Instance.new("Frame")
-detailView.Size = UDim2.new(1, 0, 1, 0)
-detailView.BackgroundTransparency = 1
-detailView.Visible = false
-detailView.Parent = page2
-
--- ── 詳細界面（先建，因為搜尋列表點擊會用到）──
-local backBtn = makeButton(detailView, "← 返回", 0, 0, 60, 22, THEME.tabActive)
-
-local detailScroll = Instance.new("ScrollingFrame")
-detailScroll.Size = UDim2.new(1, 0, 1, -28)
-detailScroll.Position = UDim2.new(0, 0, 0, 28)
-detailScroll.BackgroundTransparency = 1; detailScroll.BorderSizePixel = 0
-detailScroll.ScrollBarThickness = 3
-detailScroll.ScrollBarImageColor3 = THEME.primary
-detailScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-detailScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-detailScroll.Parent = detailView
-
-local detailLayout = Instance.new("UIListLayout")
-detailLayout.SortOrder = Enum.SortOrder.LayoutOrder
-detailLayout.Padding = UDim.new(0, 4)
-detailLayout.Parent = detailScroll
-
-local detailPad = Instance.new("UIPadding")
-detailPad.PaddingLeft = UDim.new(0, 6)
-detailPad.PaddingRight = UDim.new(0, 6)
-detailPad.PaddingTop = UDim.new(0, 4)
-detailPad.Parent = detailScroll
-
--- 英文名
-local detailEnLbl = Instance.new("TextLabel")
-detailEnLbl.Size = UDim2.new(1, 0, 0, 28)
-detailEnLbl.BackgroundTransparency = 1
-detailEnLbl.Text = ""
-detailEnLbl.TextSize = 16; detailEnLbl.Font = Enum.Font.GothamBold
-detailEnLbl.TextColor3 = THEME.accent
-detailEnLbl.TextXAlignment = Enum.TextXAlignment.Left
-detailEnLbl.TextWrapped = true
-detailEnLbl.LayoutOrder = 1
-detailEnLbl.Parent = detailScroll
-
--- 中文名
-local detailZhLbl = Instance.new("TextLabel")
-detailZhLbl.Size = UDim2.new(1, 0, 0, 20)
-detailZhLbl.BackgroundTransparency = 1
-detailZhLbl.Text = ""
-detailZhLbl.TextSize = 13; detailZhLbl.Font = Enum.Font.Gotham
-detailZhLbl.TextColor3 = THEME.textSub
-detailZhLbl.TextXAlignment = Enum.TextXAlignment.Left
-detailZhLbl.LayoutOrder = 2
-detailZhLbl.Parent = detailScroll
-
--- 難度
-local detailDiffLbl = Instance.new("TextLabel")
-detailDiffLbl.Size = UDim2.new(1, 0, 0, 20)
-detailDiffLbl.BackgroundTransparency = 1
-detailDiffLbl.Text = ""
-detailDiffLbl.TextSize = 12; detailDiffLbl.Font = Enum.Font.GothamBold
-detailDiffLbl.TextXAlignment = Enum.TextXAlignment.Left
-detailDiffLbl.LayoutOrder = 3
-detailDiffLbl.Parent = detailScroll
-
--- 分隔線
-local detailDivider = Instance.new("Frame")
-detailDivider.Size = UDim2.new(1, 0, 0, 1)
-detailDivider.BackgroundColor3 = THEME.primaryDark
-detailDivider.BorderSizePixel = 0
-detailDivider.LayoutOrder = 4
-detailDivider.Parent = detailScroll
-
--- 說明框
-local detailDescBox = Instance.new("Frame")
-detailDescBox.Size = UDim2.new(1, 0, 0, 60)
-detailDescBox.BackgroundColor3 = THEME.bgRow
-detailDescBox.BorderSizePixel = 0
-detailDescBox.AutomaticSize = Enum.AutomaticSize.Y
-detailDescBox.LayoutOrder = 5
-detailDescBox.Parent = detailScroll
-Instance.new("UICorner", detailDescBox).CornerRadius = UDim.new(0, 6)
-
-local detailDescInnerPad = Instance.new("UIPadding")
-detailDescInnerPad.PaddingLeft = UDim.new(0, 8)
-detailDescInnerPad.PaddingRight = UDim.new(0, 8)
-detailDescInnerPad.PaddingTop = UDim.new(0, 6)
-detailDescInnerPad.PaddingBottom = UDim.new(0, 6)
-detailDescInnerPad.Parent = detailDescBox
-
-local detailDescLbl = Instance.new("TextLabel")
-detailDescLbl.Size = UDim2.new(1, 0, 0, 0)
-detailDescLbl.AutomaticSize = Enum.AutomaticSize.Y
-detailDescLbl.BackgroundTransparency = 1
-detailDescLbl.Text = ""
-detailDescLbl.TextSize = 12; detailDescLbl.Font = Enum.Font.Gotham
-detailDescLbl.TextColor3 = THEME.textMain
-detailDescLbl.TextXAlignment = Enum.TextXAlignment.Left
-detailDescLbl.TextWrapped = true
-detailDescLbl.Parent = detailDescBox
-
-backBtn.MouseButton1Click:Connect(function()
-    detailView.Visible = false
-    searchView.Visible = true
-end)
-
--- ── 搜尋界面內容 ──
+-- 搜尋控制列
 local searchCtrl = Instance.new("Frame")
 searchCtrl.Size = UDim2.new(1, 0, 0, 52)
 searchCtrl.BackgroundColor3 = THEME.bgRow
-searchCtrl.Parent = searchView
+searchCtrl.Parent = page2
 Instance.new("UICorner", searchCtrl).CornerRadius = UDim.new(0, 6)
 
-local searchInput = makeInput(searchCtrl, "搜尋名稱...", 6, 4, 166, 20)
+local searchInput = makeInput(searchCtrl, "搜尋名稱...", 6, 4, 162, 20)
 
--- 難度篩選按鈕（固定寬度避免文字截斷）
-local diffFilter = Instance.new("TextButton")
-diffFilter.Size = UDim2.new(0, 78, 0, 20)
-diffFilter.Position = UDim2.new(0, 176, 0, 4)
-diffFilter.BackgroundColor3 = THEME.tabBg
-diffFilter.Text = "全部 ▾"
-diffFilter.TextSize = 10; diffFilter.Font = Enum.Font.GothamBold
-diffFilter.TextColor3 = THEME.textMain
-diffFilter.AutoButtonColor = false
-diffFilter.Parent = searchCtrl
-Instance.new("UICorner", diffFilter).CornerRadius = UDim.new(0, 4)
+-- 難度篩選按鈕（頁面2）
+local p2DiffBtn = Instance.new("TextButton")
+p2DiffBtn.Size = UDim2.new(0, 76, 0, 20)
+p2DiffBtn.Position = UDim2.new(0, 172, 0, 4)
+p2DiffBtn.BackgroundColor3 = THEME.tabBg
+p2DiffBtn.Text = "全部 ▾"; p2DiffBtn.TextSize = 10; p2DiffBtn.Font = Enum.Font.GothamBold
+p2DiffBtn.TextColor3 = THEME.textMain; p2DiffBtn.AutoButtonColor = false
+p2DiffBtn.Parent = searchCtrl
+Instance.new("UICorner", p2DiffBtn).CornerRadius = UDim.new(0, 4)
 
 local p2FontLabel = Instance.new("TextLabel")
-p2FontLabel.Size = UDim2.new(0, 40, 0, 18)
+p2FontLabel.Size = UDim2.new(0, 36, 0, 18)
 p2FontLabel.Position = UDim2.new(0, 6, 0, 30)
 p2FontLabel.BackgroundTransparency = 1
-p2FontLabel.Text = "字體:"
-p2FontLabel.TextSize = 10; p2FontLabel.Font = Enum.Font.Gotham
-p2FontLabel.TextColor3 = THEME.textMuted
-p2FontLabel.TextXAlignment = Enum.TextXAlignment.Left
+p2FontLabel.Text = "字體:"; p2FontLabel.TextSize = 10; p2FontLabel.Font = Enum.Font.Gotham
+p2FontLabel.TextColor3 = THEME.textMuted; p2FontLabel.TextXAlignment = Enum.TextXAlignment.Left
 p2FontLabel.Parent = searchCtrl
 
-local p2FontInput = makeInput(searchCtrl, "11", 46, 30, 36, 18)
+local p2FontInput = makeInput(searchCtrl, "11", 42, 30, 34, 18)
 p2FontInput.Text = "11"
 
 local resultCountLabel = Instance.new("TextLabel")
-resultCountLabel.Size = UDim2.new(0, 120, 0, 18)
-resultCountLabel.Position = UDim2.new(0, 88, 0, 30)
+resultCountLabel.Size = UDim2.new(0, 100, 0, 18)
+resultCountLabel.Position = UDim2.new(0, 82, 0, 30)
 resultCountLabel.BackgroundTransparency = 1
-resultCountLabel.Text = ""
-resultCountLabel.TextSize = 10; resultCountLabel.Font = Enum.Font.Gotham
-resultCountLabel.TextColor3 = THEME.textMuted
-resultCountLabel.TextXAlignment = Enum.TextXAlignment.Left
+resultCountLabel.Text = ""; resultCountLabel.TextSize = 10; resultCountLabel.Font = Enum.Font.Gotham
+resultCountLabel.TextColor3 = THEME.textMuted; resultCountLabel.TextXAlignment = Enum.TextXAlignment.Left
 resultCountLabel.Parent = searchCtrl
 
--- 難度下拉清單（彈出層）
-local diffDropdown = Instance.new("Frame")
-diffDropdown.Size = UDim2.new(0, 80, 0, 0)
-diffDropdown.Position = UDim2.new(0, 176, 0, 26)
-diffDropdown.BackgroundColor3 = THEME.bgInput
-diffDropdown.ClipsDescendants = true
-diffDropdown.Visible = false
-diffDropdown.ZIndex = 20
-diffDropdown.Parent = searchCtrl
-Instance.new("UICorner", diffDropdown).CornerRadius = UDim.new(0, 4)
+-- 頁面2 難度下拉
+local p2DiffDropdown = Instance.new("Frame")
+p2DiffDropdown.Size = UDim2.new(0, 82, 0, 0)
+p2DiffDropdown.Position = UDim2.new(0, 172, 0, 26)
+p2DiffDropdown.BackgroundColor3 = THEME.bgInput
+p2DiffDropdown.ClipsDescendants = true
+p2DiffDropdown.Visible = false
+p2DiffDropdown.ZIndex = 20
+p2DiffDropdown.Parent = searchCtrl
+Instance.new("UICorner", p2DiffDropdown).CornerRadius = UDim.new(0, 4)
 
--- 難度選項顯示用短標籤
-local DIFF_OPTIONS = {"全部難度","簡單","普通","中等","困難","地獄","無法獲得"}
-local DIFF_SHORT   = {"全部","簡單","普通","中等","困難","地獄","無法"}
-local selectedDiff = "全部難度"
+local p2SelectedDiff = "全部難度"
 
-local diffBtnList = {}
+local function buildSearchResults(query, diff) end  -- 前向宣告
+
 for i, opt in ipairs(DIFF_OPTIONS) do
     local db = Instance.new("TextButton")
     db.Size = UDim2.new(1, 0, 0, 20)
@@ -779,29 +928,24 @@ for i, opt in ipairs(DIFF_OPTIONS) do
     db.BackgroundColor3 = THEME.tabBg
     db.Text = opt; db.TextSize = 10; db.Font = Enum.Font.Gotham
     db.TextColor3 = (opt == "全部難度") and THEME.textMain or (DIFF_COLOR[opt] or THEME.textMain)
-    db.ZIndex = 21
-    db.AutoButtonColor = false
-    db.Parent = diffDropdown
-    table.insert(diffBtnList, db)
-
+    db.ZIndex = 21; db.AutoButtonColor = false
+    db.Parent = p2DiffDropdown
     db.MouseButton1Click:Connect(function()
-        selectedDiff = opt
-        -- 按鈕顯示短標籤，防文字截斷
-        diffFilter.Text = DIFF_SHORT[i] .. " ▾"
-        diffDropdown.Visible = false
-        diffDropdown.Size = UDim2.new(0, 80, 0, 0)
-        -- 立即更新搜尋結果
-        buildSearchResults(searchInput.Text, selectedDiff)
+        p2SelectedDiff = opt
+        p2DiffBtn.Text = DIFF_SHORT[i] .. " ▾"
+        p2DiffDropdown.Visible = false
+        p2DiffDropdown.Size = UDim2.new(0, 82, 0, 0)
+        buildSearchResults(searchInput.Text, p2SelectedDiff)
     end)
 end
 
-diffFilter.MouseButton1Click:Connect(function()
-    if diffDropdown.Visible then
-        diffDropdown.Visible = false
-        diffDropdown.Size = UDim2.new(0, 80, 0, 0)
+p2DiffBtn.MouseButton1Click:Connect(function()
+    if p2DiffDropdown.Visible then
+        p2DiffDropdown.Visible = false
+        p2DiffDropdown.Size = UDim2.new(0, 82, 0, 0)
     else
-        diffDropdown.Size = UDim2.new(0, 80, 0, #DIFF_OPTIONS * 20)
-        diffDropdown.Visible = true
+        p2DiffDropdown.Size = UDim2.new(0, 82, 0, #DIFF_OPTIONS * 20)
+        p2DiffDropdown.Visible = true
     end
 end)
 
@@ -814,13 +958,14 @@ searchScroll.ScrollBarThickness = 4
 searchScroll.ScrollBarImageColor3 = THEME.primary
 searchScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 searchScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-searchScroll.Parent = searchView
+searchScroll.ClipsDescendants = true   -- ← 關鍵：裁掉超出的子物件文字
+searchScroll.Parent = page2
 
-local searchLayout = Instance.new("UIListLayout")
-searchLayout.Padding = UDim.new(0, 2)
-searchLayout.SortOrder = Enum.SortOrder.LayoutOrder
-searchLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-searchLayout.Parent = searchScroll
+local searchListLayout = Instance.new("UIListLayout")
+searchListLayout.Padding = UDim.new(0, 2)
+searchListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+searchListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+searchListLayout.Parent = searchScroll
 
 local searchPad = Instance.new("UIPadding")
 searchPad.PaddingTop = UDim.new(0, 2)
@@ -829,10 +974,10 @@ searchPad.Parent = searchScroll
 local currentP2FontSize = 11
 local currentSearchBtns = {}
 
--- buildSearchResults 需要前向引用 detailView，故定義在詳細界面建立之後
-function buildSearchResults(query, diffFilter_)
+-- buildSearchResults 正式定義
+function buildSearchResults(query, diff)
     for _, b in ipairs(currentSearchBtns) do
-        if b then pcall(function() b:Destroy() end) end
+        pcall(function() b:Destroy() end)
     end
     currentSearchBtns = {}
 
@@ -843,95 +988,85 @@ function buildSearchResults(query, diffFilter_)
         local matchQuery = query == ""
             or glove.en:lower():find(query, 1, true)
             or glove.zh:lower():find(query, 1, true)
-        local matchDiff = diffFilter_ == "全部難度" or glove.diff == diffFilter_
+        local matchDiff = diff == "全部難度" or glove.diff == diff
 
         if matchQuery and matchDiff then
             count = count + 1
-            local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, -4, 0, currentP2FontSize + 8)
-            btn.BackgroundColor3 = THEME.bgRow
-            btn.AutoButtonColor = false
-            btn.Parent = searchScroll
+            local rowH = currentP2FontSize + 8
+
+            -- 外層用 Frame，不用 TextButton，子 label 也不會漏出
+            local row = Instance.new("Frame")
+            row.Size = UDim2.new(1, -4, 0, rowH)
+            row.BackgroundColor3 = THEME.bgRow
+            row.BorderSizePixel = 0
+            row.ClipsDescendants = true   -- ← 裁掉超出列寬的文字
+            row.Parent = searchScroll
+            Instance.new("UICorner", row).CornerRadius = UDim.new(0, 4)
+
+            -- 透明點擊層（覆蓋整個 row）
+            local rowBtn = Instance.new("TextButton")
+            rowBtn.Size = UDim2.new(1, 0, 1, 0)
+            rowBtn.BackgroundTransparency = 1
+            rowBtn.Text = ""; rowBtn.AutoButtonColor = false
+            rowBtn.Parent = row
 
             local enLbl = Instance.new("TextLabel")
-            enLbl.Size = UDim2.new(0.5, -2, 1, 0)
+            enLbl.Size = UDim2.new(0.48, -2, 1, 0)
             enLbl.Position = UDim2.new(0, 4, 0, 0)
             enLbl.BackgroundTransparency = 1
             enLbl.Text = glove.en
-            enLbl.TextSize = currentP2FontSize
-            enLbl.Font = Enum.Font.GothamBold
-            enLbl.TextColor3 = THEME.textMain
-            enLbl.TextXAlignment = Enum.TextXAlignment.Left
+            enLbl.TextSize = currentP2FontSize; enLbl.Font = Enum.Font.GothamBold
+            enLbl.TextColor3 = THEME.textMain; enLbl.TextXAlignment = Enum.TextXAlignment.Left
             enLbl.TextTruncate = Enum.TextTruncate.AtEnd
-            enLbl.Parent = btn
+            enLbl.Parent = row
 
             local zhLbl = Instance.new("TextLabel")
             zhLbl.Size = UDim2.new(0.3, 0, 1, 0)
-            zhLbl.Position = UDim2.new(0.5, 0, 0, 0)
+            zhLbl.Position = UDim2.new(0.48, 2, 0, 0)
             zhLbl.BackgroundTransparency = 1
             zhLbl.Text = glove.zh
-            zhLbl.TextSize = currentP2FontSize
-            zhLbl.Font = Enum.Font.Gotham
-            zhLbl.TextColor3 = THEME.textSub
-            zhLbl.TextXAlignment = Enum.TextXAlignment.Left
+            zhLbl.TextSize = currentP2FontSize; zhLbl.Font = Enum.Font.Gotham
+            zhLbl.TextColor3 = THEME.textSub; zhLbl.TextXAlignment = Enum.TextXAlignment.Left
             zhLbl.TextTruncate = Enum.TextTruncate.AtEnd
-            zhLbl.Parent = btn
+            zhLbl.Parent = row
 
             local diffLbl = Instance.new("TextLabel")
-            diffLbl.Size = UDim2.new(0.2, -4, 1, 0)
-            diffLbl.Position = UDim2.new(0.8, 0, 0, 0)
+            diffLbl.Size = UDim2.new(0.22, -4, 1, 0)
+            diffLbl.Position = UDim2.new(0.78, 0, 0, 0)
             diffLbl.BackgroundTransparency = 1
             diffLbl.Text = glove.diff
-            diffLbl.TextSize = math.max(8, currentP2FontSize - 1)
-            diffLbl.Font = Enum.Font.Gotham
+            diffLbl.TextSize = math.max(8, currentP2FontSize - 1); diffLbl.Font = Enum.Font.Gotham
             diffLbl.TextColor3 = DIFF_COLOR[glove.diff] or THEME.textMuted
             diffLbl.TextXAlignment = Enum.TextXAlignment.Right
             diffLbl.TextTruncate = Enum.TextTruncate.AtEnd
-            diffLbl.Parent = btn
-
-            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+            diffLbl.Parent = row
 
             local capturedGlove = glove
-            btn.MouseButton1Click:Connect(function()
-                -- 先填充詳細內容，再切換畫面
-                detailEnLbl.Text = capturedGlove.en
-                detailZhLbl.Text = capturedGlove.zh
-                detailDiffLbl.Text = "難度：" .. capturedGlove.diff
-                detailDiffLbl.TextColor3 = DIFF_COLOR[capturedGlove.diff] or THEME.textMuted
-                detailDescLbl.Text = capturedGlove.desc
+            rowBtn.MouseButton1Click:Connect(function() openDetail(capturedGlove) end)
+            rowBtn.MouseEnter:Connect(function() row.BackgroundColor3 = THEME.activeRow end)
+            rowBtn.MouseLeave:Connect(function() row.BackgroundColor3 = THEME.bgRow end)
 
-                searchView.Visible = false
-                detailView.Visible = true
-                -- 重置詳細滾動位置
-                detailScroll.CanvasPosition = Vector2.new(0, 0)
-            end)
-
-            btn.MouseEnter:Connect(function() btn.BackgroundColor3 = THEME.activeRow end)
-            btn.MouseLeave:Connect(function() btn.BackgroundColor3 = THEME.bgRow end)
-
-            table.insert(currentSearchBtns, btn)
+            table.insert(currentSearchBtns, row)
         end
     end
 
     resultCountLabel.Text = string.format("共 %d 個", count)
 end
 
--- p2 字體設定
+-- 字體更新
 p2FontInput.FocusLost:Connect(function()
     local v = tonumber(p2FontInput.Text)
     v = v and math.clamp(v, 8, 18) or 11
     p2FontInput.Text = tostring(v)
     currentP2FontSize = v
-    buildSearchResults(searchInput.Text, selectedDiff)
+    buildSearchResults(searchInput.Text, p2SelectedDiff)
 end)
 
--- 搜尋即時更新
 searchInput:GetPropertyChangedSignal("Text"):Connect(function()
-    diffDropdown.Visible = false
-    buildSearchResults(searchInput.Text, selectedDiff)
+    p2DiffDropdown.Visible = false
+    buildSearchResults(searchInput.Text, p2SelectedDiff)
 end)
 
--- 初始化搜尋結果
 buildSearchResults("", "全部難度")
 
 -- ============================================================
@@ -952,7 +1087,7 @@ end
 switchTab(1)
 
 -- ============================================================
--- 拖曳
+-- 拖曳（主框架 & 詳細 overlay 同步移動）
 -- ============================================================
 local function enableDrag(frame, handle)
     local dragging, dragStart, startPos, dragInput = false, nil, nil, nil
@@ -972,21 +1107,27 @@ local function enableDrag(frame, handle)
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
-            frame.Position = UDim2.new(
+            local newPos = UDim2.new(
                 startPos.X.Scale, startPos.X.Offset + delta.X,
                 startPos.Y.Scale, startPos.Y.Offset + delta.Y
             )
+            frame.Position = newPos
+            -- 詳細 overlay 跟著主框架位置
+            if frame == mainFrame then
+                detailOverlay.Position = newPos
+            end
         end
     end)
 end
 enableDrag(mainFrame, titleBar)
+enableDrag(detailOverlay, detailTitleBar)
 
 -- ============================================================
 -- 最小化
 -- ============================================================
 local miniFrame = Instance.new("Frame")
-miniFrame.Size = UDim2.new(0, 160, 0, 32)
-miniFrame.Position = UDim2.new(0.5, -80, 0, 30)
+miniFrame.Size = UDim2.new(0, 170, 0, 32)
+miniFrame.Position = UDim2.new(0.5, -85, 0, 30)
 miniFrame.BackgroundColor3 = THEME.titleBg
 miniFrame.Visible = false; miniFrame.Parent = screenGui
 Instance.new("UICorner", miniFrame).CornerRadius = UDim.new(0, 6)
@@ -994,7 +1135,7 @@ local miniStroke2 = Instance.new("UIStroke")
 miniStroke2.Color = THEME.primaryDark; miniStroke2.Thickness = 1.5; miniStroke2.Parent = miniFrame
 
 local miniTitleLbl = Instance.new("TextLabel")
-miniTitleLbl.Text = "手套偵測工具 v1.1"; miniTitleLbl.Size = UDim2.new(1, -36, 1, 0)
+miniTitleLbl.Text = "手套偵測工具 v1.2"; miniTitleLbl.Size = UDim2.new(1, -36, 1, 0)
 miniTitleLbl.BackgroundTransparency = 1; miniTitleLbl.Font = Enum.Font.GothamBold
 miniTitleLbl.TextSize = 11; miniTitleLbl.TextColor3 = THEME.accent; miniTitleLbl.Parent = miniFrame
 
@@ -1009,8 +1150,8 @@ expandBtn.Parent = miniFrame
 Instance.new("UICorner", expandBtn).CornerRadius = UDim.new(0, 5)
 enableDrag(miniFrame, miniFrame)
 
-minimizeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false; miniFrame.Visible = true end)
+minimizeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false; detailOverlay.Visible = false; miniFrame.Visible = true end)
 expandBtn.MouseButton1Click:Connect(function() miniFrame.Visible = false; mainFrame.Visible = true end)
 closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
-print("貓玲的手套偵測工具 v1.1 已載入！")
+print("貓玲的手套偵測工具 v1.2 已載入！")
