@@ -124,7 +124,7 @@ local GLOVE_DATA={
 {en="Silly",zh="滑稽",diff="普通",desc="拿baby/嬰兒被混亂打後開吵鬧，然後被風扇吹飛。"},
 {en="Slasher",zh="斬首者",diff="普通",desc="進run的迷宮的壁畫後經過一些操作後打死boss。"},
 {en="Car Keys",zh="車鑰匙",diff="普通",desc="讓車鑰匙用車能力並有座位後讓要解的adios坐上發動能力，傳送後跟ai比賽車勝利。"},
-{en="Suction",zh="馬桶",diff="普通",desc="點兩馬桶塞，向導門上和死亡方塊下，傳送後跑到終點。"},
+{en="Suction",zh="馬桶",diff="簡單",desc="點兩馬桶塞，向導門上和死亡方塊下，傳送後跑到終點。"},
 {en="Reflect",zh="反射",diff="普通",desc="在hitman那完成任意四個任務後進白門，打贏那boss。"},
 {en="Dave",zh="戴夫",diff="簡單",desc="還要說什麼嗎。"},
 {en="mortis",zh="莫提斯",diff="簡單",desc="也就戴夫的困難版。"},
