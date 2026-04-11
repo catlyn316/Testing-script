@@ -1,4 +1,4 @@
--- 貓玲的手套偵測工具 v1.4 完整版 (133筆手套 + 四分區上下左右布局)
+-- 貓玲的手套偵測工具 v1.4 完整版 (134筆手套)
 local CoreGui=game:GetService("CoreGui")
 local Players=game:GetService("Players")
 local UserInputService=game:GetService("UserInputService")
@@ -144,7 +144,8 @@ local GLOVE_DATA={
 {en="Piñata",zh="皮納塔",diff="普通",desc="用鍊金拿麵粉後進烤箱，出來後把蛋糕放樹果島的桌子上。"},
 {en="Penguin",zh="企鵝",diff="簡單",desc="跟企鵝玩滑冰吃魚和記憶力。"},
 {en="Undead",zh="殭屍",diff="簡單",desc="在時鐘能力快從復活時間轉到下一個能力前，跳下虛空。"},
-{en="Groundbreaker",zh="破地者",diff="中等",desc="用地震同時埋了3個人並都打到虛空。"}
+{en="Groundbreaker",zh="破地者",diff="中等",desc="用地震同時埋了3個人並都打到虛空。"},
+{en="Shellbert",zh="謝伯爾特",diff="簡單",desc="解到eggler後再去跟蛋頭人對話，都選最左邊的然後他會給你黃色傳送門，進去打贏蛋boss"}
 }
 
 local DIFF_COLOR={["簡單"]=Color3.fromRGB(40,200,90),["普通"]=Color3.fromRGB(160,200,80),["中等"]=Color3.fromRGB(220,180,40),["困難"]=Color3.fromRGB(220,100,40),["地獄"]=Color3.fromRGB(200,45,45),["無法獲得"]=Color3.fromRGB(120,120,120)}
