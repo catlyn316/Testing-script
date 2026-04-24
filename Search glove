@@ -129,7 +129,7 @@ local GLOVE_DATA={
 {en="Dave",zh="戴夫",diff="簡單",desc="還要說什麼嗎。"},
 {en="mortis",zh="莫提斯",diff="簡單",desc="也就戴夫的困難版。"},
 {en="Bounty",zh="賞金",diff="簡單",desc="用hitman拿到黃金槍，250賞金。"},
-{en="Debug",zh="除錯",diff="簡單",desc="被故障吸到後上上下下左左右右，之後進到個神秘地方解密。"},
+{en="Debug",zh="除錯",diff="簡單",desc="被故障吸到後上上下下左右左右，之後進到個神秘地方解密。"},
 {en="Paint",zh="顏料",diff="簡單",desc="賞金地下室的梯子上有顏料漆，點下傳送後跟4個機器人比誰塗的顏料多。"},
 {en="Plate",zh="盤子",diff="簡單",desc="一直打盤子上的牌子讓他紅溫，之後撐過2分鐘的障礙賽。"},
 {en="Lag",zh="延遲",diff="簡單",desc="浮空10秒鐘。"},
