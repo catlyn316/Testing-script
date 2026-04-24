@@ -145,7 +145,7 @@ local GLOVE_DATA={
 {en="Penguin",zh="企鵝",diff="簡單",desc="跟企鵝玩滑冰吃魚和記憶力。"},
 {en="Undead",zh="殭屍",diff="簡單",desc="在時鐘能力快從復活時間轉到下一個能力前，跳下虛空。"},
 {en="Groundbreaker",zh="破地者",diff="中等",desc="在公服先用地震殺了一個人後在30秒內用地震技能同時埋了3個人並都打到虛空。"},
-{en="Shellbert",zh="謝爾伯特",diff="簡單",desc="解到eggler後再去跟蛋頭人對話，都選最左邊的然後他會給你黃色傳送門，進去打贏蛋boss"}
+{en="Shellbert",zh="謝爾伯特",diff="簡單",desc="解到eggler後再去跟蛋頭人對話，都選最左邊的然後他會給你黃色傳送門，進去打贏蛋boss"},
 {en="Lasso",zh="套索",diff="普通",desc="被陷阱斷腿後再被斧頭(knockoff)斷頭，再被beatdown(41000拍)用能力打一頓斷手，動畫結束才給徽章，可在私服，以上動作必須在任一部位恢復前完成"}
 }
 
