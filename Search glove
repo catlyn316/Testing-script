@@ -1,4 +1,4 @@
--- 貓玲的手套偵測工具 v1.4 完整版 (134筆手套)
+-- 貓玲的手套偵測工具 v1.4 完整版 (135筆手套)
 local CoreGui=game:GetService("CoreGui")
 local Players=game:GetService("Players")
 local UserInputService=game:GetService("UserInputService")
