@@ -55,7 +55,7 @@ local GLOVE_DATA={
 {en="Voodoo",zh="巫毒",diff="普通",desc="拿ghost/幽靈維持幽靈狀態一小時，去安全區就行。"},
 {en="Goofy",zh="混亂",diff="普通",desc="在困惑狀態下被混亂打到即可，主要難度是要找到有困惑和混亂手套的玩家。"},
 {en="Leash",zh="繩子",diff="困難",desc="要有16個人都拿著邪教進場才能獲得。"},
-{en="Flamarang",zh="火圈",diff="困難",desc="在任意服找到5個超殺，用boomerang/回力鏢把他們打下虛空，自己死了沒關係別離開伺服器就行。"},
+{en="Flamarang",zh="火圈",diff="普通",desc="在任意服找到5個超殺，用boomerang/回力鏢把他們打下虛空，自己死了沒關係別離開伺服器就行。"},
 {en="Kinetic",zh="動能",diff="普通",desc="在公服用stun/暈眩倒地100次、用能力命中別人50次即可。"},
 {en="Berserk",zh="狂暴",diff="普通",desc="在公服要找到有動能的玩家，活過他的最大衝擊波3~4次。"},
 {en="Sparky",zh="極速",diff="中等",desc="要找到超殺、死神、conveyor，自己拿speedrun，被死神和運輸者打後用速跑全速衝向超殺後被超殺擊殺。"},
