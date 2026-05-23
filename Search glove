@@ -1,4 +1,4 @@
--- 貓玲的手套偵測工具 v1.4 完整版 (135筆手套)
+-- 貓玲的手套偵測工具 v1.4 完整版
 local CoreGui=game:GetService("CoreGui")
 local Players=game:GetService("Players")
 local UserInputService=game:GetService("UserInputService")
@@ -147,7 +147,8 @@ local GLOVE_DATA={
 {en="Groundbreaker",zh="破地者",diff="中等",desc="在公服先用地震殺了一個人後在30秒內用地震技能同時埋了3個人並都打到虛空。"},
 {en="Shellbert",zh="謝爾伯特",diff="簡單",desc="解到eggler後再去跟蛋頭人對話，都選最左邊的然後他會給你黃色傳送門，進去打贏蛋boss"},
 {en="Lasso",zh="套索",diff="普通",desc="被陷阱斷腿後再被斧頭(knockoff)斷頭，再被beatdown(41000拍)用能力打一頓斷手，動畫結束才給徽章，可在私服，以上動作必須在任一部位恢復前完成"},
-{en="Lotus",zh="蓮花",diff="簡單",desc="去四季的春天傳送後拿到5種顏色的蓮花"}
+{en="Lotus",zh="蓮花",diff="簡單",desc="去四季的春天傳送後拿到5種顏色的蓮花"},
+{en="Elastic",zh="橡皮筋",diff="普通",desc="用gummy/糖果打有3氣球的玩家，直到他因天空屏障而死...或者直接用腳本"}
 }
 
 local DIFF_COLOR={["簡單"]=Color3.fromRGB(40,200,90),["普通"]=Color3.fromRGB(160,200,80),["中等"]=Color3.fromRGB(220,180,40),["困難"]=Color3.fromRGB(220,100,40),["地獄"]=Color3.fromRGB(200,45,45),["無法獲得"]=Color3.fromRGB(120,120,120)}
